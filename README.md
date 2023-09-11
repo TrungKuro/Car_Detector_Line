@@ -122,7 +122,7 @@ Khả năng của thuật toán PID là:
 > - Nhanh (Fast Response).
 > - Ổn định (Small Overshot).
 >
-> <img src="./img/Code_PID.png" width="100%">
+> <img src="./img/Code_PID.PNG" width="100%">
 
 Chức năng của từng khâu PID
 
