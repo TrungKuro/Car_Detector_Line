@@ -11,23 +11,23 @@ Các loại đường line:
 
 ... hình line
 
-## <span style="color:#41C0B5">Version 1
+## <span style="color:#41C0B5">Version 1 - CarLine
 
 Phần cứng sử dụng:
 
 > **Bộ linh kiện China (giá rẻ):**
 > - ~~[Thanh 5 Cảm Biến Dò Line TCRT5000 Line Follower Sensor](https://hshop.vn/products/thanh-5-cam-bien-do-line-tcrt5000-line-follower-sensor).~~
 > - [Cảm Biến Dò Line Đơn TCRT5000 Line Follower Sensor](https://hshop.vn/products/cam-bien-do-line-don).
-> - [Động Cơ RC Servo 9G](https://hshop.vn/products/dong-co-rc-servo-9g).
-> - [Cảm Biến Siêu Âm Ultrasonic US-015](https://hshop.vn/products/cam-bien-sieu-am-us-16).
-> - [Mạch Thu Phát Bluetooth 3.0 SPP / BLE 4.2 Dual Mode JDY-33 (HC-05 / HC-06 Compatible)](https://hshop.vn/products/mach-thu-phat-bluetooth-dual-mode-3-0-spp-ble-4-2-jdy-33-hc-05-hc-06-compatible).
 > - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
+> - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
 >
 > **Mặt trước:**
-> - <img src="./img/CarLineChina_Ver1_Front.jpg" width="100%">
+>
+> <img src="./img/CarLineChina_Ver1_Front.jpg" width="100%">
 >
 > **Mặt sau:**
-> - <img src="./img/CarLineChina_Ver1_Back.jpg" width="100%">
+>
+> <img src="./img/CarLineChina_Ver1_Back.jpg" width="100%">
 >
 > **Bộ linh kiện MakerEdu:**
 > - ...
@@ -53,15 +53,15 @@ Thuật toán sử dụng:
 > |Vị trí|Bên TRÁI Line||Chính GIỮA Line||Bên PHẢI Line|
 > |Thứ tự mảng|`[4]`|`[3]`|`[2]`|`[1]`|`[0]`|
 > |Ngoài line (lệch phải)|0|0|0|0|0|**<span style="color:#FE0101">0**|`+5`
-> |Lệch phải (mức `4`)|1|0|0|0|0|**<span style="color:#FE0101">16**|`+4`
-> |Lệch phải (mức `3`)|1|1|0|0|0|**<span style="color:#FE0101">24**|`+3`
-> |Lệch phải (mức `2`)|0|1|0|0|0|**<span style="color:#FE0101">8**|`+2`
-> |Lệch phải (mức `1`)|0|1|1|0|0|**<span style="color:#FE0101">12**|`+1`
-> |Giữa line|0|0|1|0|0|**<span style="color:#FE0101">4**|`0`
-> |Lệch trái (mức `1`)|0|0|1|1|0|**<span style="color:#FE0101">6**|`-1`
-> |Lệch trái (mức `2`)|0|0|0|1|0|**<span style="color:#FE0101">2**|`-2`
-> |Lệch trái (mức `3`)|0|0|0|1|1|**<span style="color:#FE0101">3**|`-3`
-> |Lệch trái (mức `4`)|0|0|0|0|1|**<span style="color:#FE0101">1**|`-4`
+> |Lệch phải (mức `4`)|`1`|0|0|0|0|**<span style="color:#FE0101">16**|`+4`
+> |Lệch phải (mức `3`)|`1`|`1`|0|0|0|**<span style="color:#FE0101">24**|`+3`
+> |Lệch phải (mức `2`)|0|`1`|0|0|0|**<span style="color:#FE0101">8**|`+2`
+> |Lệch phải (mức `1`)|0|`1`|`1`|0|0|**<span style="color:#FE0101">12**|`+1`
+> |Giữa line|0|0|`1`|0|0|**<span style="color:#FE0101">4**|`0`
+> |Lệch trái (mức `1`)|0|0|`1`|`1`|0|**<span style="color:#FE0101">6**|`-1`
+> |Lệch trái (mức `2`)|0|0|0|`1`|0|**<span style="color:#FE0101">2**|`-2`
+> |Lệch trái (mức `3`)|0|0|0|`1`|`1`|**<span style="color:#FE0101">3**|`-3`
+> |Lệch trái (mức `4`)|0|0|0|0|`1`|**<span style="color:#FE0101">1**|`-4`
 > |Ngoài line (lệch trái)|0|0|0|0|0|**<span style="color:#FE0101">0**|`-5`
 >
 > **<span style="color:#FFBA00">THỰC TẾ:**
@@ -80,7 +80,32 @@ Thuật toán sử dụng:
 > KD = 11.0
 > </pre>
 
-## Nguồn tài liệu
+## <span style="color:#41C0B5">Version 2 - CarUltra
+
+Phần cứng sử dụng:
+
+> **Bộ linh kiện China (giá rẻ):**
+> - [Động Cơ RC Servo 9G](https://hshop.vn/products/dong-co-rc-servo-9g).
+> - [Cảm Biến Siêu Âm Ultrasonic US-015](https://hshop.vn/products/cam-bien-sieu-am-us-16).
+> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
+> - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
+>
+> **Bộ linh kiện MakerEdu:**
+> - ...
+
+## <span style="color:#41C0B5">Version 3 - CarBLE
+
+Phần cứng sử dụng:
+
+> **Bộ linh kiện China (giá rẻ):**
+> - [Mạch Thu Phát Bluetooth 3.0 SPP / BLE 4.2 Dual Mode JDY-33 (HC-05 / HC-06 Compatible)](https://hshop.vn/products/mach-thu-phat-bluetooth-dual-mode-3-0-spp-ble-4-2-jdy-33-hc-05-hc-06-compatible).
+> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
+> - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
+>
+> **Bộ linh kiện MakerEdu:**
+> - ...
+
+## <span style="color:#FE0101">Nguồn tài liệu
 
 Về PID:
 
@@ -103,7 +128,7 @@ Về Servo:
 
 > - Thư viện Servo cho Arduino - [Servo](https://www.arduino.cc/reference/en/libraries/servo/).<br>→ Trên các bo mạch không phải Mega, việc sử dụng thư viện sẽ vô hiệu hóa chức năng `analogWrite()` **(PWM)** trên các chân `9` và `10`, cho dù có Servo trên các chân đó hay không.<br>→ Nên mình chỉ sử dụng chân `D9` và `D10` cho tính năng Digital.
 
-## Thuật toán PID
+## <span style="color:#FE0101">Thuật toán PID
 
 Có tất cả 3 khâu, thường được đề cập theo thứ tự:
 >

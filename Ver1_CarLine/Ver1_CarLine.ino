@@ -1,9 +1,3 @@
-/**
- * Dùng PID
- * Lưu ý, nguồn pin có ảnh hướng đến độ chính xác của xe
- * Nguồn ổn định và đủ sẽ đảm bảo motor hoạt động tốt cả cảm biến
- */
-
 /* ------------------------------------------------------------------------- */
 /*                                   DEFINE                                  */
 /* ------------------------------------------------------------------------- */
@@ -50,30 +44,6 @@
 
 /**
  * Hệ số của các khâu PID
- *
- * (Ver1)
- * Cộng/Trừ bù so với gốc "SPEED_DEFAULT"
- * Tốc độ mặc định 30%
- * Ngưỡng giới hạn +/- 40%
- * KP = 25.0
- * KI = 0.0
- * KD = 10.0
- *
- * (Ver2)
- * Cộng/Trừ bù từ chính riêng mỗi bánh
- * Tốc độ mặc định 30%
- * Ngưỡng giới hạn +/- 70%
- * KP = 30.0
- * KI = 0.0
- * KD = 25.0
- *
- * (Ver3)
- * Cộng/Trừ bù so với gốc "SPEED_DEFAULT"
- * Tốc độ mặc định 30%
- * Ngưỡng giới hạn +/- 50%
- * KP = 25.0
- * KI = 0.00001
- * KD = 11.0
  *
  * → Hiện tại mình đang để xe có tốc độ gốc là +30%
  *   Và độ dao động tốc độ cho phép là +/- 50%
@@ -196,30 +166,9 @@ void motorLeft_RotateReverse(int PWM)
   digitalWrite(PIN_IN4, HIGH);
 }
 
-// Điều khiển Motor bên Phải dừng lại
-void motorRight_Stop()
-{
-  digitalWrite(PIN_IN1, LOW);
-  digitalWrite(PIN_IN2, LOW);
-}
-
-// Điều khiển Motor bên Trái dừng lại
-void motorLeft_Stop()
-{
-  digitalWrite(PIN_IN3, LOW);
-  digitalWrite(PIN_IN4, LOW);
-}
-
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
-
-/* ------------------------- Điều khiển xe dừng lại ------------------------ */
-void stop()
-{
-  motorRight_Stop();
-  motorLeft_Stop();
-}
 
 /* ------------------------- Điều khiển xe đi thẳng ------------------------ */
 void go_straight_custom(int speedLeft, int speedRight)
@@ -315,8 +264,6 @@ void motor_control()
   // Thêm PID vào điều chỉnh tốc độ riêng cho mỗi bánh xe
   car.speedRightNow = SPEED_DEFAULT + car.PID_value;
   car.speedLeftNow = SPEED_DEFAULT - car.PID_value;
-  // car.speedRightNow += car.PID_value;
-  // car.speedLeftNow -= car.PID_value;
 
   // Đảm bảo tốc độ Motor ko vượt quá giá trị xung PWM tối đa
   car.speedRightNow = constrain(car.speedRightNow, MIN, MAX);
@@ -332,8 +279,6 @@ void motor_control()
 
 void setup()
 {
-  Serial.begin(115200);
-
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
@@ -347,10 +292,4 @@ void setup()
 void loop()
 {
   motor_control();
-  // Serial.println(car.PID_value);
-  // Serial.println(car.speedRightNow);
-  // Serial.println(car.speedLeftNow);
-  // Serial.println("---");
-
-  // delay(100);
 }
