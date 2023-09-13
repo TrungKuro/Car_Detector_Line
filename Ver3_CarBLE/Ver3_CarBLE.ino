@@ -113,14 +113,23 @@
  * Đặt giá trị tốc độ xe mặc định ban đầu
  * Khi xe vừa mới khởi động, khoảng [0 : 255]
  */
-#define SPEED_DEFAULT PER_50
+#define SPEED_DEFAULT PER_100
 
 /**
- * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
- * Khi xe thực hiện rẽ trái hoặc phải
+ * Tính năng nâng cao:
+ * _ Khi nhấn các tổ hợp nút cho xe rẽ trái hoặc phải
+ * _ Gồm đi tới rẽ trái/phải ; đi lùi rẽ trái/phải
+ * _ Càng giữ nút nhấn lâu, tốc độ rẽ của xe càng nhanh
+ *
+ * Comment hoặc Uncomment để chọn chế đ
  */
-#define MIN PER_20
-#define MAX PER_100
+#define UPGRADE
+
+/**
+ * Tốc độ thay đổi công suất của bánh xe
+ * Khi xe thực hiện việc rẽ trái hoặc rẽ phải
+ */
+#define TIME_CHANGES 6 // Đơn vị (ms)
 
 /* ------------------------------------------------------------------------- */
 /*                                  LIBRARY                                  */
@@ -135,6 +144,19 @@
 byte blue = 0;                                   // Nhận dữ liệu qua Bluetooth
 SoftwareSerial mySerial(PIN_TX_BLE, PIN_RX_BLE); // RX (Soft), TX (Soft)
 int speed = SPEED_DEFAULT;                       // Tốc độ hiện tại của xe
+
+#ifdef UPGRADE
+bool flag = false;     // Cờ báo cho biết đang nhấn tổ hợp phím
+unsigned long capTime; // Lấy thời điểm bắt đầu tổ hợp phím
+int speedChange;       // Lưu tốc độ thay đổi hiện tại của bánh xe
+enum DIRECTION         // Cho biết loại tổ hợp phím đang nhấn
+{
+  GO_LEFT,
+  GO_RIGHT,
+  BACK_LEFT,
+  BACK_RIGHT,
+} direction;
+#endif
 
 /* ------------------------------------------------------------------------- */
 /*                                  FUNCTION                                 */
@@ -190,20 +212,16 @@ void motorLeft_Stop()
 void go_custom(int speedLeft, int speedRight)
 {
   // Xử lý motor bên Phải
-  if (speedRight >= MIN)
+  if (speedRight >= 0)
     motorRight_RotateForward(speedRight);
-  else if (speedRight <= -MIN)
-    motorRight_RotateReverse(-speedRight);
   else
-    motorRight_Stop();
+    motorRight_RotateReverse(-speedRight);
 
   // Xử lý motor bên Trái
-  if (speedLeft >= MIN)
+  if (speedLeft >= 0)
     motorLeft_RotateForward(speedLeft);
-  else if (speedLeft <= -MIN)
-    motorLeft_RotateReverse(-speedLeft);
   else
-    motorLeft_Stop();
+    motorLeft_RotateReverse(-speedLeft);
 }
 
 /* ------------------------- Điều khiển xe dừng lại ------------------------ */
@@ -224,34 +242,70 @@ void motor_control()
   /* ----------------------------- Xe đi thẳng ----------------------------- */
   case 'F':
     go_custom(speed, speed);
+#ifdef UPGRADE
+    flag = false;
+#endif
     break;
   /* ------------------------------ Xe đi lùi ------------------------------ */
   case 'B':
     go_custom(-speed, -speed);
+#ifdef UPGRADE
+    flag = false;
+#endif
     break;
   /* ---------------- Xe xoay trái (ngược chiều kim đồng hồ) --------------- */
   case 'L':
     go_custom(speed, -speed);
+#ifdef UPGRADE
+    flag = false;
+#endif
     break;
   /* ---------------- Xe xoay phải (cùng chiều kim đồng hồ) ---------------- */
   case 'R':
     go_custom(-speed, speed);
+#ifdef UPGRADE
+    flag = false;
+#endif
     break;
   /* ------------------------- Xe đi thẳng rẽ trái ------------------------- */
   case 'G':
-    go_custom(speed / 2, speed);
+#ifdef UPGRADE
+    speedChange = speed;
+    direction = GO_LEFT;
+    flag = true;
+#else
+    go_custom(0, speed);
+#endif
     break;
   /* ------------------------- Xe đi thẳng rẽ phải ------------------------- */
   case 'I':
-    go_custom(speed, speed / 2);
+#ifdef UPGRADE
+    speedChange = speed;
+    direction = GO_RIGHT;
+    flag = true;
+#else
+    go_custom(speed, 0);
+#endif
     break;
   /* -------------------------- Xe đi lùi rẽ trái -------------------------- */
   case 'H':
-    go_custom(-speed / 2, -speed);
+#ifdef UPGRADE
+    speedChange = -speed;
+    direction = BACK_LEFT;
+    flag = true;
+#else
+    go_custom(0, -speed);
+#endif
     break;
   /* -------------------------- Xe đi lùi rẽ phải -------------------------- */
   case 'J':
-    go_custom(-speed, -speed / 2);
+#ifdef UPGRADE
+    speedChange = -speed;
+    direction = BACK_RIGHT;
+    flag = true;
+#else
+    go_custom(-speed, 0);
+#endif
     break;
   /* ------------------------- Điều chỉnh tốc độ xe ------------------------ */
   case '0':
@@ -291,6 +345,9 @@ void motor_control()
   case 'D':
   case 'S':
     stop();
+#ifdef UPGRADE
+    flag = false;
+#endif
     break;
   /* ------------------------- Các trường hợp khác ------------------------- */
   default:
@@ -304,6 +361,7 @@ void motor_control()
 
 void setup()
 {
+  // Bật kênh truyền Bluetooth
   mySerial.begin(9600);
 
   pinMode(PIN_IN1, OUTPUT);
@@ -326,4 +384,41 @@ void loop()
     // Xử lý dữ liệu và điều khiển xe
     motor_control();
   }
+
+// Dùng cho tính năng nâng cao
+#ifdef UPGRADE
+  if (flag)
+  {
+    if (millis() - capTime >= TIME_CHANGES)
+    {
+      // Cập nhập time
+      capTime = millis();
+
+      // Chỉnh tốc độ
+      switch (direction)
+      {
+      case GO_LEFT: // [+speed → -speed]
+        speedChange--;
+        speedChange = constrain(speedChange, -speed, speed);
+        go_custom(speedChange, speed);
+        break;
+      case GO_RIGHT: // [+speed → -speed]
+        speedChange--;
+        speedChange = constrain(speedChange, -speed, speed);
+        go_custom(speed, speedChange);
+        break;
+      case BACK_LEFT: // [-speed → +speed]
+        speedChange++;
+        speedChange = constrain(speedChange, -speed, speed);
+        go_custom(speedChange, -speed);
+        break;
+      case BACK_RIGHT: // [-speed → +speed]
+        speedChange++;
+        speedChange = constrain(speedChange, -speed, speed);
+        go_custom(-speed, speedChange);
+        break;
+      }
+    }
+  }
+#endif
 }

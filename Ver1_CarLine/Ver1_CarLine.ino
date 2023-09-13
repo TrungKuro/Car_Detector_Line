@@ -134,7 +134,7 @@
  *
  * Comment hoặc Uncomment để chọn chế độ
  */
-// #define ZERO
+#define ZERO
 
 /* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
