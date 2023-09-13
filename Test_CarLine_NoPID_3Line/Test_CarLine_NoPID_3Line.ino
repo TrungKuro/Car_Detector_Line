@@ -1,7 +1,12 @@
 /**
- * Không có dùng PID
+ * Ko có sử dụng PID
+ * Việc xử lý hướng đi của xe dựa trên các trường hợp mắt dò line phản hồi
  *
- * Nguồn pin có ảnh hướng đến độ chính xác của xe
+ * Các hệ số tốc độ của xe được đặt cố định cho mỗi trường hợp
+ * Vậy nên cần lưu ý về nguồn pin
+ * Nó sẽ ảnh hướng đến độ chính xác hoạt động của xe
+ *
+ * Khi pin yếu, nguồn ko cấp đủ cho motor hoạt động ... xe sẽ chạy sai
  */
 
 /* ------------------------------------------------------------------------- */
@@ -59,12 +64,19 @@
 #define PER_20 51
 #define PER_10 26
 
-// Các mức tốc độ
+// Các mức tốc độ xe sẽ sử dụng
 #define FAST PER_60
 #define NORMAL PER_50
 #define SLOW PER_40
 
-// TimeOut, đơn vị (ms)
+/**
+ * Khoảng thời gian "timeout", đơn vị (ms)
+ *
+ * Là khoảng thời gian cho phép xe vẫn chạy tiếp dù đã ra ngoài line
+ * Đây là khoảng thời gian để xe tìm lại đường line
+ *
+ * Hết thời gian mà xe vẫn ko thấy line, sẽ cho xe dừng hẳn
+ */
 #define TIME_OUT 500
 
 /* ------------------------------------------------------------------------- */
@@ -336,8 +348,6 @@ void motor_control()
 
 void setup()
 {
-  // Serial.begin(115200);
-
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);

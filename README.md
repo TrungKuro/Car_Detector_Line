@@ -1,15 +1,20 @@
 # <span style="color:#FFBA00">Xe dò line
 
 Các loại đường line:
-- Thẳng.
-- Thẳng đứt khúc.
-- Cong tròn.
-- Cong tròn đứt khúc.
-- Góc vuông (90º).
-- Góc hơi bẹt (135º).
-- Góc nhọn (45º).
 
-... hình line
+> - Thẳng.
+> - Thẳng đứt khúc.
+> - Cong tròn.
+> - Cong tròn đứt khúc.
+> - Góc vuông (90º).
+> - Góc hơi bẹt (135º).
+> - Góc nhọn (45º).
+>
+> |Line_1|Line_2|Line_3|
+> |------|------|------|
+> |<img src="./img/Line_1.jpg" width="100%">|<img src="./img/Line_2.jpg" width="100%">|<img src="./img/Line_3.jpg" width="100%">|
+>
+> Sử dụng băng keo đen làm đường line, có độ dày khoảng `1,6cm`!
 
 ## <span style="color:#41C0B5">Version 1 - CarLine
 
@@ -30,13 +35,16 @@ Phần cứng sử dụng:
 > <img src="./img/CarLineChina_Ver1_Back.jpg" width="100%">
 >
 > **Bộ linh kiện MakerEdu:**
-> - ...
+> - [Cảm Biến Dò Đường MKE-S10 CNY70 Line Follower Sensor](https://hshop.vn/products/cam-bien-do-duong-mkl-s10-cny70-line-follower-sensor).
+> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
+> - [Mạch MakerEdu Shield For Vietduino](https://hshop.vn/products/arduino-makeredu-shield).
+> - [Mạch Vietduino Uno USB-B (Arduino Uno Compatible)](https://hshop.vn/products/vietduino-uno).
 
 Thuật toán sử dụng:
 
 > Thanh dò line có 5 mắt, được tổ chức theo cấu trúc sau. Trong đó:
-> - `bit 1` nghĩa là mắt cảm biến ngay trên đường line.
-> - `bit 0` nghĩa là mắt cảm biến ngoài đường line.
+> - `bit 1` nghĩa là mắt cảm biến ngay <u>trên</u> đường line.
+> - `bit 0` nghĩa là mắt cảm biến <u>ngoài</u> đường line.
 >
 > Dựa trên cách phân giá trị phản hồi của từng mắt, mình có được các trường hợp, như hình ví dụ sau.
 >
@@ -46,23 +54,31 @@ Thuật toán sử dụng:
 >
 > Với 5 mắt cảm biến dò line, ta có thể có tất cả **<span style="color:#FE0101">2<sup>5</sup> = 32 trường hợp** nhận được.
 >
-> Tuy nhiên chỉ có 10 trường hợp để sử dụng, cho quá trình xử lý khi xe di chuyển trên đường line.
+> Tuy nhiên chỉ có `9 trường hợp` để <u>sử dụng</u> + `3 trường hợp` <u>đặc biệt</u>, cho quá trình xử lý khi xe di chuyển trên đường line.
+>
+> Các mức lệch ngoài line gồm `+5` và `-5`, sẽ cần một <u>biến nhớ trạng thái</u> theo dõi liên tục *"hướng lệch"*, để biết lần cuối xe đang bị lệch sang trái hay sang phải.
 >
 > |-|Led5|Led4|Led3|Led2|Led1|DEC|Level|
 > |-|:--:|:--:|:--:|:--:|:--:|:-:|:---:|
 > |Vị trí|Bên TRÁI Line||Chính GIỮA Line||Bên PHẢI Line|
 > |Thứ tự mảng|`[4]`|`[3]`|`[2]`|`[1]`|`[0]`|
+> |Góc **<span style="color:#FFBA00">45º** (bên trái)|`1`|0|`1`|0|0|**<span style="color:#FE0101">20**|`!`
+> |Góc **<span style="color:#FFBA00">90º** (bên trái)|`1`|`1`|`1`|0|0|**<span style="color:#FE0101">28**|`!`
 > |Ngoài line (lệch phải)|0|0|0|0|0|**<span style="color:#FE0101">0**|`+5`
 > |Lệch phải (mức `4`)|`1`|0|0|0|0|**<span style="color:#FE0101">16**|`+4`
 > |Lệch phải (mức `3`)|`1`|`1`|0|0|0|**<span style="color:#FE0101">24**|`+3`
 > |Lệch phải (mức `2`)|0|`1`|0|0|0|**<span style="color:#FE0101">8**|`+2`
 > |Lệch phải (mức `1`)|0|`1`|`1`|0|0|**<span style="color:#FE0101">12**|`+1`
-> |Giữa line|0|0|`1`|0|0|**<span style="color:#FE0101">4**|`0`
+> |**<span style="color:#FFBA00">Giữa line**|0|0|`1`|0|0|**<span style="color:#FE0101">4**|`0`
 > |Lệch trái (mức `1`)|0|0|`1`|`1`|0|**<span style="color:#FE0101">6**|`-1`
 > |Lệch trái (mức `2`)|0|0|0|`1`|0|**<span style="color:#FE0101">2**|`-2`
 > |Lệch trái (mức `3`)|0|0|0|`1`|`1`|**<span style="color:#FE0101">3**|`-3`
 > |Lệch trái (mức `4`)|0|0|0|0|`1`|**<span style="color:#FE0101">1**|`-4`
 > |Ngoài line (lệch trái)|0|0|0|0|0|**<span style="color:#FE0101">0**|`-5`
+> |Góc **<span style="color:#FFBA00">90º** (bên phải)|0|0|`1`|`1`|`1`|**<span style="color:#FE0101">7**|`!`
+> |Góc **<span style="color:#FFBA00">45º** (bên phải)|0|0|`1`|0|`1`|**<span style="color:#FE0101">5**|`!`
+>
+> **<span style="color:#FE0101">Điểm mạnh** của xe có <u>5 mắt line</u> là xử lý tốt các *"đường line vuông góc"*.
 >
 > **<span style="color:#FFBA00">THỰC TẾ:**
 >
@@ -79,6 +95,20 @@ Thuật toán sử dụng:
 > KI = 0.00001
 > KD = 11.0
 > </pre>
+>
+> |-|Led3|Led2|Led1|DEC|Level|
+> |-|:--:|:--:|:--:|:-:|:---:|
+> |Vị trí|Bên TRÁI Line|Chính GIỮA Line|Bên PHẢI Line|
+> |Thứ tự mảng|`[2]`|`[1]`|`[0]`|
+> |Ngoài line (lệch phải)|0|0|0|**<span style="color:#FE0101">0**|`+3`
+> |Lệch phải (mức `2`)|`1`|0|0|**<span style="color:#FE0101">4**|`+2`
+> |Lệch phải (mức `1`)|`1`|`1`|0|**<span style="color:#FE0101">6**|`+1`
+> |**<span style="color:#FFBA00">Giữa line**|0|`1`|0|**<span style="color:#FE0101">2**|`0`
+> |Lệch trái (mức `1`)|0|`1`|`1`|**<span style="color:#FE0101">3**|`-1`
+> |Lệch trái (mức `2`)|0|0|`1`|**<span style="color:#FE0101">1**|`-2`
+> |Ngoài line (lệch trái)|0|0|0|**<span style="color:#FE0101">0**|`-3`
+>
+> **<span style="color:#FE0101">Điểm yếu** của xe chỉ có <u>3 mắt line</u> là ko xử lý tốt các *"đường line vuông góc"*. Lúc này cảm biến hiểu đang lệch mức `+1` hoặc `-1`. Trong khi, đáng lẽ lúc này xe phải xoay trái/phải gấp để bám kịp theo line.
 
 ## <span style="color:#41C0B5">Version 2 - CarUltra
 
@@ -91,7 +121,11 @@ Phần cứng sử dụng:
 > - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
 >
 > **Bộ linh kiện MakerEdu:**
-> - ...
+> - [Động Cơ RC Servo 9G](https://hshop.vn/products/dong-co-rc-servo-9g).
+> - [Cảm Biến Siêu Âm Ultrasonic US-015](https://hshop.vn/products/cam-bien-sieu-am-us-16).
+> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
+> - [Mạch MakerEdu Shield For Vietduino](https://hshop.vn/products/arduino-makeredu-shield).
+> - [Mạch Vietduino Uno USB-B (Arduino Uno Compatible)](https://hshop.vn/products/vietduino-uno).
 
 ## <span style="color:#41C0B5">Version 3 - CarBLE
 
@@ -103,7 +137,10 @@ Phần cứng sử dụng:
 > - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
 >
 > **Bộ linh kiện MakerEdu:**
-> - ...
+> - [Mạch Thu Phát MKE-M15 Bluetooth 3.0 SPP / BLE 4.2 Dual Mode Module](https://hshop.vn/products/mach-thu-phat-mke-m15-bluetooth-3-0-spp-ble-4-2-dual-mode-module).
+> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
+> - [Mạch MakerEdu Shield For Vietduino](https://hshop.vn/products/arduino-makeredu-shield).
+> - [Mạch Vietduino Uno USB-B (Arduino Uno Compatible)](https://hshop.vn/products/vietduino-uno).
 
 ## <span style="color:#FE0101">Nguồn tài liệu
 

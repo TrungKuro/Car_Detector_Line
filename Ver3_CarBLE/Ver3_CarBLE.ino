@@ -193,7 +193,7 @@ void go_custom(int speedLeft, int speedRight)
   if (speedRight >= MIN)
     motorRight_RotateForward(speedRight);
   else if (speedRight <= -MIN)
-    motorRight_RotateReverse(speedRight);
+    motorRight_RotateReverse(-speedRight);
   else
     motorRight_Stop();
 
@@ -201,7 +201,7 @@ void go_custom(int speedLeft, int speedRight)
   if (speedLeft >= MIN)
     motorLeft_RotateForward(speedLeft);
   else if (speedLeft <= -MIN)
-    motorLeft_RotateReverse(speedLeft);
+    motorLeft_RotateReverse(-speedLeft);
   else
     motorLeft_Stop();
 }

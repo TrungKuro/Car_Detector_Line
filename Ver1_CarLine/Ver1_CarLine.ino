@@ -1,3 +1,32 @@
+/**
+ * Tính năng cơ bản:
+ * - Sử dụng 3 mắt dò line
+ * - Xe chạy liên tục ko có dừng
+ *
+ * ****************************************************************************
+ *
+ * Tính năng nâng cao (chưa triển khai):
+ * |
+ * - Sử dụng 5 mắt dò line
+ * - Xe tự dừng sau khoảng "timeout" ở ngoài line
+ * - Sử dụng kết hợp thêm Bluetooth
+ * |
+ * |- Có thể tự điều chỉnh 3 hệ số của PID
+ * |- Chọn giá trị tốc độ mặc định "SPEED_DEFAULT"
+ * |- Chọn ngưỡng giới hạn tốc độ "UP/DOWN"
+ * |- Chọn ngưỡng công suất "MIN" thấp nhất cho motor
+ * |
+ * |- Nút để xe tự calib hệ số PID theo đường line
+ * |- Nút bật/tắt cho phép xe chạy theo line hoặc dừng lại
+ * |- Nút chọn cách sử dụng hệ số PID
+ *    |
+ *    Mode DEFAULT
+ *    |- Tinh chỉnh bánh trái/phải quanh giá trị "gốc" (SPEED_DEFAULT)
+ *    |
+ *    Mode ZERO
+ *    |- Tinh chỉnh bánh trái/phải theo giá trị "cũ" trước đó của riêng mỗi bánh
+ */
+
 /* ------------------------------------------------------------------------- */
 /*                                   DEFINE                                  */
 /* ------------------------------------------------------------------------- */
@@ -45,21 +74,20 @@
 /**
  * Hệ số của các khâu PID
  *
- * → Hiện tại mình đang để xe có tốc độ gốc là +30%
- *   Và độ dao động tốc độ cho phép là +/- 50%
- *   |
- *   Khâu [P] thể hiện độ lớn thay đổi tốc độ
- *   |        giá trị càng lớn sẽ càng tạo nhiều dao động
- *   Khâu [D] để giảm đi tốc độ thay đổi đó
- *   |        giá trị càng lớn sẽ giảm bớt dao động lại
- *   |        nhưng nếu lớn quá sẽ làm đứng yên trạng thái lệch
- *   Khâu [I] để cộng dồn các mức lệch
- *   |        giúp bù lực cho tình huống bị đứng yên trên
- *   |        nhưng nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
+ * Khâu [P] thể hiện độ lớn thay đổi tốc độ
+ * |        giá trị càng lớn sẽ càng tạo nhiều dao động
+ * |
+ * Khâu [D] để giảm đi tốc độ thay đổi đó
+ * |        giá trị càng lớn sẽ giảm bớt dao động lại
+ * |        nhưng nếu lớn quá sẽ làm đứng yên trạng thái lệch
+ * |
+ * Khâu [I] để cộng dồn các mức lệch
+ * |        giúp bù lực cho tình huống bị đứng yên trên
+ * |        nhưng nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
  */
-#define KP 25.0    //!
+#define KP 50.0    //!
 #define KI 0.00001 //!
-#define KD 11.0    //!
+#define KD 35.0    //!
 
 // Tốc độ motor, đơn vị PWM (0-255)
 #define PER_100 255
@@ -72,18 +100,41 @@
 #define PER_30 77
 #define PER_20 51
 #define PER_10 26
+#define PER_0 0
 
 /**
  * Đặt giá trị tốc độ xe mặc định ban đầu
  * Khi xe vừa mới khởi động, khoảng [0 : 255]
  */
-#define SPEED_DEFAULT PER_30
+#define SPEED_DEFAULT PER_50
 
 /**
  * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
+ * Giá trị dương (+), motor quay thuận
+ * Giá trị âm (-), motor quay nghịch
  */
-#define MIN -PER_50
-#define MAX PER_50
+#define UP PER_70
+#define DOWN -PER_70
+
+/**
+ * Đặt ngưỡng thấp nhất cho phép cấp vào motor
+ * Tránh tình trạng các motor ko đủ nguồn để hoạt động
+ *
+ * Motor sẽ hoạt động trong dãi phạm vi
+ * - quay thuận ... [MIN_UP : UP]
+ * - quay nghịch ... [MIN_DOWN : DOWN]
+ */
+#define MIN_UP PER_30
+#define MIN_DOWN -PER_30
+
+/**
+ * Chọn cách sử dụng giá trị PID
+ * Mode ZERO    → Sử dụng giá trị "cũ" trước đó làm gốc
+ * Mode DEFAULT → Sử dụng giá trị "SPEED_DEFAULT" làm gốc
+ *
+ * Comment hoặc Uncomment để chọn chế độ
+ */
+// #define ZERO
 
 /* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
@@ -166,9 +217,30 @@ void motorLeft_RotateReverse(int PWM)
   digitalWrite(PIN_IN4, HIGH);
 }
 
+// Điều khiển Motor bên Phải dừng lại
+void motorRight_Stop()
+{
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, LOW);
+}
+
+// Điều khiển Motor bên Trái dừng lại
+void motorLeft_Stop()
+{
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, LOW);
+}
+
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
+
+/* ------------------------- Điều khiển xe dừng lại ------------------------ */
+void stop()
+{
+  motorRight_Stop();
+  motorLeft_Stop();
+}
 
 /* ------------------------- Điều khiển xe đi thẳng ------------------------ */
 void go_straight_custom(int speedLeft, int speedRight)
@@ -176,12 +248,12 @@ void go_straight_custom(int speedLeft, int speedRight)
   if (speedRight >= 0)
     motorRight_RotateForward(speedRight);
   else
-    motorRight_RotateReverse(speedRight);
+    motorRight_RotateReverse(-speedRight);
 
   if (speedLeft >= 0)
     motorLeft_RotateForward(speedLeft);
   else
-    motorLeft_RotateReverse(speedLeft);
+    motorLeft_RotateReverse(-speedLeft);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -259,15 +331,27 @@ void motor_control()
   // Tính toán giá trị PID
   car.PID_value = (car.Kp * car.P) + (car.Ki * car.I) + (car.Kd * car.D);
 
-  /* ----------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------- */
 
-  // Thêm PID vào điều chỉnh tốc độ riêng cho mỗi bánh xe
+// Thêm PID vào điều chỉnh tốc độ riêng cho mỗi bánh xe
+#ifdef ZERO
+  car.speedRightNow += car.PID_value;
+  car.speedLeftNow -= car.PID_value;
+#else
   car.speedRightNow = SPEED_DEFAULT + car.PID_value;
   car.speedLeftNow = SPEED_DEFAULT - car.PID_value;
+#endif
 
-  // Đảm bảo tốc độ Motor ko vượt quá giá trị xung PWM tối đa
-  car.speedRightNow = constrain(car.speedRightNow, MIN, MAX);
-  car.speedLeftNow = constrain(car.speedLeftNow, MIN, MAX);
+  // Đảm bảo tốc độ Motor bánh phải nằm trong các khoảng quy định
+  if (car.speedRightNow >= 0)
+    car.speedRightNow = constrain(car.speedRightNow, MIN_UP, UP);
+  else
+    car.speedRightNow = constrain(car.speedRightNow, DOWN, MIN_DOWN);
+  // Đảm bảo tốc độ Motor bánh trái nằm trong các khoảng quy định
+  if (car.speedLeftNow >= 0)
+    car.speedLeftNow = constrain(car.speedLeftNow, MIN_UP, UP);
+  else
+    car.speedLeftNow = constrain(car.speedLeftNow, DOWN, MIN_DOWN);
 
   // Đẩy robot về phía trước với tốc độ tùy chỉnh hai bên
   go_straight_custom(car.speedLeftNow, car.speedRightNow);

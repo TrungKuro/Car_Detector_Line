@@ -1,7 +1,6 @@
 /**
  * Dùng PID
- * Lưu ý, nguồn pin có ảnh hướng đến độ chính xác của xe
- * Nguồn ổn định và đủ sẽ đảm bảo motor hoạt động tốt cả cảm biến
+ * Phiên bản này, xe chạy liên tục ko có dừng
  */
 
 /* ------------------------------------------------------------------------- */
@@ -51,6 +50,17 @@
 /**
  * Hệ số của các khâu PID
  *
+ * Khâu [P] thể hiện độ lớn thay đổi tốc độ
+ * |        giá trị càng lớn sẽ càng tạo nhiều dao động
+ * |
+ * Khâu [D] để giảm đi tốc độ thay đổi đó
+ * |        giá trị càng lớn sẽ giảm bớt dao động lại
+ * |        nhưng nếu lớn quá sẽ làm đứng yên trạng thái lệch
+ * |
+ * Khâu [I] để cộng dồn các mức lệch
+ * |        giúp bù lực cho tình huống bị đứng yên trên
+ * |        nhưng nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
+ *
  * (Ver1)
  * Cộng/Trừ bù so với gốc "SPEED_DEFAULT"
  * Tốc độ mặc định 30%
@@ -74,18 +84,6 @@
  * KP = 25.0
  * KI = 0.00001
  * KD = 11.0
- *
- * → Hiện tại mình đang để xe có tốc độ gốc là +30%
- *   Và độ dao động tốc độ cho phép là +/- 50%
- *   |
- *   Khâu [P] thể hiện độ lớn thay đổi tốc độ
- *   |        giá trị càng lớn sẽ càng tạo nhiều dao động
- *   Khâu [D] để giảm đi tốc độ thay đổi đó
- *   |        giá trị càng lớn sẽ giảm bớt dao động lại
- *   |        nhưng nếu lớn quá sẽ làm đứng yên trạng thái lệch
- *   Khâu [I] để cộng dồn các mức lệch
- *   |        giúp bù lực cho tình huống bị đứng yên trên
- *   |        nhưng nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
  */
 #define KP 25.0    //!
 #define KI 0.00001 //!
@@ -111,6 +109,8 @@
 
 /**
  * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
+ * Giá trị dương, motor quay thuận
+ * Giá trị âm, motor quay nghịch
  */
 #define MIN -PER_50
 #define MAX PER_50
@@ -227,12 +227,12 @@ void go_straight_custom(int speedLeft, int speedRight)
   if (speedRight >= 0)
     motorRight_RotateForward(speedRight);
   else
-    motorRight_RotateReverse(speedRight);
+    motorRight_RotateReverse(-speedRight);
 
   if (speedLeft >= 0)
     motorLeft_RotateForward(speedLeft);
   else
-    motorLeft_RotateReverse(speedLeft);
+    motorLeft_RotateReverse(-speedLeft);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -332,7 +332,8 @@ void motor_control()
 
 void setup()
 {
-  Serial.begin(115200);
+  /* Cho Debug */
+  // Serial.begin(115200);
 
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
@@ -347,10 +348,11 @@ void setup()
 void loop()
 {
   motor_control();
+
+  /* Cho Debug */
   // Serial.println(car.PID_value);
   // Serial.println(car.speedRightNow);
   // Serial.println(car.speedLeftNow);
   // Serial.println("---");
-
   // delay(100);
 }
