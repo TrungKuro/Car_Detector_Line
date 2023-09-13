@@ -48,7 +48,7 @@ Thuật toán sử dụng:
 >
 > Dựa trên cách phân giá trị phản hồi của từng mắt, mình có được các trường hợp, như hình ví dụ sau.
 >
-> <img src="./img/State_Line.png" width="100%">
+> <img src="./img/State_Line.PNG" width="100%">
 >
 > **<span style="color:#FFBA00">BẢNG TRẠNG THÁI CẢM BIẾN:**
 >
