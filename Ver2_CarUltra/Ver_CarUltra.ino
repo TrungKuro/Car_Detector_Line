@@ -1,3 +1,7 @@
+/**
+ * ??????????
+ */
+
 /* ------------------------------------------------------------------------- */
 /*                                   DEFINE                                  */
 /* ------------------------------------------------------------------------- */
@@ -15,12 +19,13 @@
 /* ------------------------------------------------------------------------- */
 
 /**
- * Pin kết nối cảm biến Siêu âm US-015
+ * Pin kết nối cảm biến Siêu âm HY-SRF05
  *
- * US-015 : Arduino
+ * HY-SRF05 : Arduino
  * VCC    - 5V
  * TRIG   - D9
  * ECHO   - D10
+ * OUT    - none
  * GND    - GND
  */
 #define PIN_TRIG 9  //! D9
@@ -39,11 +44,11 @@
  * ENA  - 5V
  * ENB  - 5V
  *
- * L298 : Arduino : Chức năng
- * IN1  : D4      :
- * IN2  : D5 (~)  :
- * IN3  : D6 (~)  :
- * IN4  : D7      :
+ * L298 : Arduino
+ * IN1  : D4
+ * IN2  : D5 (~)
+ * IN3  : D6 (~)
+ * IN4  : D7
  */
 #define PIN_IN1 4 //! D4
 #define PIN_IN2 5 //! D5 (~)
@@ -66,45 +71,52 @@
 #define PER_0 0
 
 // Các mức tốc độ xe sẽ sử dụng
-#define FAST PER_60
-#define NORMAL PER_50
-#define SLOW PER_40
+#define FAST PER_60   //!
+#define NORMAL PER_50 //!
+#define SLOW PER_40   //!
 
 /**
  * Đặt khoảng vùng đo cho cảm biến Siêu âm
  * Khoảng xa nhất và khoảng ngắn nhất
  * Đơn vị (cm)
  */
-#define MAX_DISTANCE 100
-#define MIN_DISTANCE 10
+#define MAX_DISTANCE 100 //!
+#define MIN_DISTANCE 10  //!
 
 /**
- * Khoảng cách nguy hiểm để xe dừng lại
+ * Đặt khoảng cách hoạt động cho cảm biến Siêu âm
+ * Khoảng cách "nguy hiểm" để xe dừng lại và "an toàn" để xe đi tiếp
  * Đơn vị (cm)
  */
-#define DANGER_DISTANCE 20
-
-/**
- * Khoảng cách an toàn để xe đi tiếp
- * Đơn vị (cm)
- */
-#define SAFE_DISTANCE 50
+#define DANGER_DISTANCE 20 //!
+#define SAFE_DISTANCE 50   //!
 
 /**
  * Khoảng dừng giữa mỗi lần xe chuyển trạng thái
  * Từ di chuyển sang dừng, và ngược lại
- * Và giữa các lần Servo di chuyển
  * Đơn vị (ms)
  */
-#define WAIT 300
+#define WAIT_DRIVER 500 //!
 
 /**
- * Góc quay của Servo
- * Để chỉnh hướng quét của Siêu âm
+ * Khoảng thời gian chờ giữa mỗi lần Servo di chuyển
+ * Đơn vị (ms)
  */
-#define SIDE_LEFT 0
-#define SIDE_CENTER 90
-#define SIDE_RIGHT 180
+#define WAIT_SERVO 700 //!
+
+/**
+ * Khoảng thời gian chờ giữa mỗi lần đo cảm biến Siêu âm
+ * Đơn vị (ms)
+ */
+#define WAIT_ULTRA 100 //!
+
+/**
+ * Góc quay của Servo, để chỉnh hướng quét của Siêu âm
+ * Đơn vị độ (º)
+ */
+#define SCAN_LEFT 170  //!
+#define SCAN_CENTER 90 //!
+#define SCAN_RIGHT 10  //!
 
 /* ------------------------------------------------------------------------- */
 /*                                  LIBRARY                                  */
@@ -114,7 +126,7 @@
 #include <NewPing.h>
 
 /* ------------------------------------------------------------------------- */
-/*                                  VARIABLE                                 */
+/*                                   OBJECT                                  */
 /* ------------------------------------------------------------------------- */
 
 // Khởi tạo cảm biến Siêu âm
@@ -123,14 +135,20 @@ NewPing sonar(PIN_TRIG, PIN_ECHO, MAX_DISTANCE);
 // Khởi tạo động cơ Servo
 Servo servo_motor;
 
+/* ------------------------------------------------------------------------- */
+/*                                  VARIABLE                                 */
+/* ------------------------------------------------------------------------- */
+
 /**
  * Quyết định đi thẳng hoặc hướng khác
+ * TRUE  : được đi thẳng
+ * FALSE : ko được đi thẳng
  */
 bool goesForward = false;
 
 /**
- * Lưu giá trị khoảng cách
- * Gồm: trái, giữa, phải
+ * Lưu giá trị khoảng cách, đơn vị (cm)
+ * Gồm hướng trái, giữa, phải
  */
 int distanceLeft = 0;
 int distanceCenter = 0;
@@ -187,6 +205,11 @@ void motorLeft_Stop()
 /* ------------------------------------------------------------------------- */
 
 /* ------------------- Điều khiển xe di chuyển tùy chỉnh ------------------- */
+
+/**
+ * Giá trị tốc độ dương (+), bánh xe quay hướng đi tới
+ * Giá trị tốc độ âm (-), bánh xe quay hướng đi lùi
+ */
 void go_custom(int speedLeft, int speedRight)
 {
   // Xử lý motor bên Phải
@@ -213,39 +236,66 @@ void stop()
 /* ------------------------------------------------------------------------- */
 /* ------------------------------------------------------------------------- */
 
+int readPing()
+{
+  return constrain(sonar.ping_cm(), MIN_DISTANCE, MAX_DISTANCE);
+}
+
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+
 void motor_control()
 {
   // Nếu phát hiện có vật cản phía trước
   if (distanceCenter <= DANGER_DISTANCE)
   {
-    // Dừng xe ngay và đi lùi về một chút
-    go_custom(-SLOW, -SLOW);
-    delay(WAIT);
+    // Lùi gấp liền và dừng lại
+    go_custom(-FAST, -FAST);
+    delay(WAIT_DRIVER);
     stop();
-    delay(WAIT);
+    delay(WAIT_DRIVER);
 
     // Kiểm tra khoảng cách bên phải
-    servo_motor.write(SIDE_RIGHT);
-    delay(WAIT);
+    servo_motor.write(SCAN_RIGHT);
+    delay(WAIT_SERVO);
     distanceRight = readPing();
-    delay(WAIT);
+    delay(WAIT_ULTRA);
+    servo_motor.write(SCAN_CENTER);
+    delay(WAIT_SERVO);
 
     // Kiểm tra khoảng cách bên trái
-    servo_motor.write(SIDE_LEFT);
-    delay(WAIT);
+    servo_motor.write(SCAN_LEFT);
+    delay(WAIT_SERVO);
     distanceLeft = readPing();
-    delay(WAIT);
+    delay(WAIT_ULTRA);
+    servo_motor.write(SCAN_CENTER);
+    delay(WAIT_SERVO);
 
-    if (distance >= distanceLeft)
-    {              // neu khoang cach toi da >= khoang cach ben trai
-      turnRight(); // re phai
-      moveStop();
-    }
-    else
-    {             // ko thi
-      turnLeft(); // re trai
-      moveStop();
-    }
+    do
+    {
+      /* -------------- Bên phải có khoảng trống để di chuyển -------------- */
+      if (distanceRight >= distanceLeft)
+      {
+        // Xoay phải
+        go_custom(SLOW, -SLOW);
+        delay(WAIT_DRIVER);
+        stop();
+        delay(WAIT_DRIVER);
+      }
+      /* -------------- Bên trái có khoảng trống để di chuyển -------------- */
+      else
+      {
+        // Xoay trái
+        go_custom(-SLOW, SLOW);
+        delay(WAIT_DRIVER);
+        stop();
+        delay(WAIT_DRIVER);
+      }
+      /* -------- Kiểm tra khoảng cách xem có phải xoay tiếp hay ko? ------- */
+      distanceCenter = readPing();
+      delay(WAIT_ULTRA);
+    } while (distanceCenter < SAFE_DISTANCE);
   }
   else
   {
@@ -255,6 +305,7 @@ void motor_control()
 
   // Đọc khoảng cách hiện tại của xe
   distanceCenter = readPing();
+  delay(WAIT_ULTRA);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -265,17 +316,21 @@ void setup()
 {
   // Thiết đặt chân cho Servo
   servo_motor.attach(PIN_SERVO);
-  servo_motor.write(SIDE_CENTER);
-  delay(WAIT);
 
-  // Thiết đặt các chân cho Driver
+  // Thiết đặt các chân điều khiển Driver
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
   pinMode(PIN_IN4, OUTPUT);
 
-  // Đo khoảng cách hiện của xe
+  /**
+   * Điều khiển Servo quay Siêu âm ngay hướng giữa
+   * Và đo khoảng cách phía trước xe
+   */
+  servo_motor.write(SCAN_CENTER);
+  delay(WAIT_SERVO);
   distanceCenter = readPing();
+  delay(WAIT_ULTRA);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -284,5 +339,11 @@ void setup()
 
 void loop()
 {
+  /**
+   * Trình tự các bước điều khiển xe:
+   * |
+   * Bước 1: Kiểm tra khoảng cách hiện tại
+   * Bước 2: Điều khiển xe di chuyển phù hợp theo giá trị nhận được
+   */
   motor_control();
 }
