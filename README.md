@@ -33,12 +33,6 @@ Phần cứng sử dụng:
 > **Mặt sau:**
 >
 > <img src="./img/CarLineChina_Ver1_Back.jpg" width="100%">
->
-> **Bộ linh kiện MakerEdu:**
-> - [Cảm Biến Dò Đường MKE-S10 CNY70 Line Follower Sensor](https://hshop.vn/products/cam-bien-do-duong-mkl-s10-cny70-line-follower-sensor).
-> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
-> - [Mạch MakerEdu Shield For Vietduino](https://hshop.vn/products/arduino-makeredu-shield).
-> - [Mạch Vietduino Uno USB-B (Arduino Uno Compatible)](https://hshop.vn/products/vietduino-uno).
 
 Thuật toán sử dụng:
 
@@ -116,16 +110,9 @@ Phần cứng sử dụng:
 
 > **Bộ linh kiện China (giá rẻ):**
 > - [Động Cơ RC Servo 9G](https://hshop.vn/products/dong-co-rc-servo-9g).
-> - [Cảm Biến Siêu Âm Ultrasonic US-015](https://hshop.vn/products/cam-bien-sieu-am-us-16).
+> - [Cảm Biến Siêu Âm UltraSonic HY-SRF05](https://hshop.vn/products/cam-bien-sieu-am-srf05).
 > - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
 > - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
->
-> **Bộ linh kiện MakerEdu:**
-> - [Động Cơ RC Servo 9G](https://hshop.vn/products/dong-co-rc-servo-9g).
-> - [Cảm Biến Siêu Âm Ultrasonic US-015](https://hshop.vn/products/cam-bien-sieu-am-us-16).
-> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
-> - [Mạch MakerEdu Shield For Vietduino](https://hshop.vn/products/arduino-makeredu-shield).
-> - [Mạch Vietduino Uno USB-B (Arduino Uno Compatible)](https://hshop.vn/products/vietduino-uno).
 
 ## <span style="color:#41C0B5">Version 3 - CarBLE
 
@@ -135,12 +122,6 @@ Phần cứng sử dụng:
 > - [Mạch Thu Phát Bluetooth 3.0 SPP / BLE 4.2 Dual Mode JDY-33 (HC-05 / HC-06 Compatible)](https://hshop.vn/products/mach-thu-phat-bluetooth-dual-mode-3-0-spp-ble-4-2-jdy-33-hc-05-hc-06-compatible).
 > - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
 > - [Mạch Uno (Arduino Uno Compatible)](https://hshop.vn/products/arduino-uno-r3).
->
-> **Bộ linh kiện MakerEdu:**
-> - [Mạch Thu Phát MKE-M15 Bluetooth 3.0 SPP / BLE 4.2 Dual Mode Module](https://hshop.vn/products/mach-thu-phat-mke-m15-bluetooth-3-0-spp-ble-4-2-dual-mode-module).
-> - [Mạch Điều Khiển Động Cơ L298 DC Motor Driver](https://hshop.vn/products/mach-dieu-khien-dong-co-dc-l298).
-> - [Mạch MakerEdu Shield For Vietduino](https://hshop.vn/products/arduino-makeredu-shield).
-> - [Mạch Vietduino Uno USB-B (Arduino Uno Compatible)](https://hshop.vn/products/vietduino-uno).
 
 ## <span style="color:#FE0101">Nguồn tài liệu
 

@@ -34,11 +34,11 @@
  * ENA  - 5V
  * ENB  - 5V
  *
- * L298 : Arduino : Chức năng
- * IN1  : D4      :
- * IN2  : D5 (~)  :
- * IN3  : D6 (~)  :
- * IN4  : D7      :
+ * L298 : Arduino
+ * IN1  : D4
+ * IN2  : D5 (~)
+ * IN3  : D6 (~)
+ * IN4  : D7
  */
 #define PIN_IN1 4 //! D4
 #define PIN_IN2 5 //! D5 (~)
@@ -48,39 +48,40 @@
 /* ------------------------------------------------------------------------- */
 
 /**
- * Hệ số của các khâu PID
+ * Hệ số của các khâu PID:
  *
  * Khâu [P] thể hiện độ lớn thay đổi tốc độ
  * |        giá trị càng lớn sẽ càng tạo nhiều dao động
  * |
  * Khâu [D] để giảm đi tốc độ thay đổi đó
  * |        giá trị càng lớn sẽ giảm bớt dao động lại
- * |        nhưng nếu lớn quá sẽ làm đứng yên trạng thái lệch
+ * |        nhưng nếu lớn quá sẽ dẫn đến trạng thái lệch tĩnh
+ * |        tức xe vẫn còn lệch line, nhưng motor ko nhận lệnh đủ để thoát khỏi đó
  * |
  * Khâu [I] để cộng dồn các mức lệch
- * |        giúp bù lực cho tình huống bị đứng yên trên
- * |        nhưng nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
+ * |        giúp bù lực cho tình huống bị đứng yên ở trên
+ * |        nhưng hệ số nên nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
  *
- * (Ver1)
- * Cộng/Trừ bù so với gốc "SPEED_DEFAULT"
- * Tốc độ mặc định 30%
- * Ngưỡng giới hạn +/- 40%
+ * (Test_1)
+ * Cộng/Trừ bù so với tốc độ gốc "SPEED_DEFAULT"
+ * Tốc độ mặc định (SPEED_DEFAULT): 30%
+ * Ngưỡng giới hạn tốc độ quay thuận và ngược: +/- 40%
  * KP = 25.0
  * KI = 0.0
  * KD = 10.0
  *
- * (Ver2)
- * Cộng/Trừ bù từ chính riêng mỗi bánh
- * Tốc độ mặc định 30%
- * Ngưỡng giới hạn +/- 70%
+ * (Test_2)
+ * Cộng/Trừ bù từ chính tốc độ hiện tại của riêng mỗi bánh
+ * Tốc độ mặc định (SPEED_DEFAULT): 30%
+ * Ngưỡng giới hạn tốc độ quay thuận và ngược: +/- 70%
  * KP = 30.0
  * KI = 0.0
  * KD = 25.0
  *
- * (Ver3)
- * Cộng/Trừ bù so với gốc "SPEED_DEFAULT"
- * Tốc độ mặc định 30%
- * Ngưỡng giới hạn +/- 50%
+ * (Test_3)
+ * Cộng/Trừ bù so với tốc độ gốc "SPEED_DEFAULT"
+ * Tốc độ mặc định (SPEED_DEFAULT): 30%
+ * Ngưỡng giới hạn tốc độ quay thuận và ngược: +/- 50%
  * KP = 25.0
  * KI = 0.00001
  * KD = 11.0
@@ -100,20 +101,21 @@
 #define PER_30 77
 #define PER_20 51
 #define PER_10 26
+#define PER_0 0
 
 /**
  * Đặt giá trị tốc độ xe mặc định ban đầu
  * Khi xe vừa mới khởi động, khoảng [0 : 255]
  */
-#define SPEED_DEFAULT PER_30
+#define SPEED_DEFAULT PER_30 //!
 
 /**
  * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
  * Giá trị dương, motor quay thuận
  * Giá trị âm, motor quay nghịch
  */
-#define MIN -PER_50
-#define MAX PER_50
+#define MAX PER_50  //!
+#define MIN -PER_50 //!
 
 /* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
@@ -217,18 +219,27 @@ void motorLeft_Stop()
 /* ------------------------- Điều khiển xe dừng lại ------------------------ */
 void stop()
 {
+  // Bánh phải dừng lại
   motorRight_Stop();
+  // Bánh trái dừng lại
   motorLeft_Stop();
 }
 
-/* ------------------------- Điều khiển xe đi thẳng ------------------------ */
-void go_straight_custom(int speedLeft, int speedRight)
+/* ------------------- Điều khiển xe di chuyển tùy chỉnh ------------------- */
+
+/**
+ * Giá trị tốc độ dương (+), bánh xe quay hướng đi tới
+ * Giá trị tốc độ âm (-), bánh xe quay hướng đi lùi
+ */
+void go_custom(int speedLeft, int speedRight)
 {
+  // Xử lý motor bên Phải
   if (speedRight >= 0)
     motorRight_RotateForward(speedRight);
   else
     motorRight_RotateReverse(-speedRight);
 
+  // Xử lý motor bên Trái
   if (speedLeft >= 0)
     motorLeft_RotateForward(speedLeft);
   else
@@ -281,6 +292,7 @@ void motor_control()
     /* ----------------------------- Giữa line ----------------------------- */
   case 2: // [010] - Giữa line
     car.errorNow = 0;
+    break;
     /* ----------------------------- Lệch phải ----------------------------- */
   case 6: // [110] - Lệch phải mức 1
     car.direction = true;
@@ -323,7 +335,7 @@ void motor_control()
   car.speedLeftNow = constrain(car.speedLeftNow, MIN, MAX);
 
   // Đẩy robot về phía trước với tốc độ tùy chỉnh hai bên
-  go_straight_custom(car.speedLeftNow, car.speedRightNow);
+  go_custom(car.speedLeftNow, car.speedRightNow);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -332,9 +344,7 @@ void motor_control()
 
 void setup()
 {
-  /* Cho Debug */
-  // Serial.begin(115200);
-
+  // Thiết đặt các chân điều khiển Driver
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
@@ -347,12 +357,15 @@ void setup()
 
 void loop()
 {
+  /**
+   * Trình tự các bước điều khiển xe:
+   * |
+   * Bước 1: đọc giá trị các mắt dò line (3 cảm biến)
+   * Bước 2: tính ra "mức độ lệch line" hiện tại từ giá trị các cảm biến phản hồi về
+   * Bước 3: tính giá trị từng khâu P, khâu I, khâu D
+   * Bước 4: tính giá trị tổng của cả khâu PID
+   * Bước 5: bù trừ tốc độ mỗi bánh xe dựa trên giá trị PID này
+   * Bước 6: điều khiển các bánh xe với tốc độ đã điều chỉnh
+   */
   motor_control();
-
-  /* Cho Debug */
-  // Serial.println(car.PID_value);
-  // Serial.println(car.speedRightNow);
-  // Serial.println(car.speedLeftNow);
-  // Serial.println("---");
-  // delay(100);
 }

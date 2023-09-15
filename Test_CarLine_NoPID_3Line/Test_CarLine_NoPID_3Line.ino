@@ -5,8 +5,11 @@
  * Các hệ số tốc độ của xe được đặt cố định cho mỗi trường hợp
  * Vậy nên cần lưu ý về nguồn pin
  * Nó sẽ ảnh hướng đến độ chính xác hoạt động của xe
+ * Khi pin yếu, nguồn ko cấp đủ cho motor hoạt động ... xe sẽ chạy sai!
  *
- * Khi pin yếu, nguồn ko cấp đủ cho motor hoạt động ... xe sẽ chạy sai
+ * Phiên bản này, khi xe phát hiện có line mới chạy
+ * Không có line xe sẽ dừng lại
+ * Tuy nhiên, xe chỉ dừng hoàn toàn sau khoảng thời gian "timeout" tính từ lúc mất line
  */
 
 /* ------------------------------------------------------------------------- */
@@ -39,11 +42,11 @@
  * ENA  - 5V
  * ENB  - 5V
  *
- * L298 : Arduino : Chức năng
- * IN1  : D4      :
- * IN2  : D5 (~)  :
- * IN3  : D6 (~)  :
- * IN4  : D7      :
+ * L298 : Arduino
+ * IN1  : D4
+ * IN2  : D5 (~)
+ * IN3  : D6 (~)
+ * IN4  : D7
  */
 #define PIN_IN1 4 //! D4
 #define PIN_IN2 5 //! D5 (~)
@@ -63,21 +66,22 @@
 #define PER_30 77
 #define PER_20 51
 #define PER_10 26
+#define PER_0 0
 
 // Các mức tốc độ xe sẽ sử dụng
-#define FAST PER_60
-#define NORMAL PER_50
-#define SLOW PER_40
+#define FAST PER_60   //!
+#define NORMAL PER_50 //!
+#define SLOW PER_40   //!
 
 /**
- * Khoảng thời gian "timeout", đơn vị (ms)
+ * Khoảng thời gian "timeout"
  *
  * Là khoảng thời gian cho phép xe vẫn chạy tiếp dù đã ra ngoài line
  * Đây là khoảng thời gian để xe tìm lại đường line
  *
  * Hết thời gian mà xe vẫn ko thấy line, sẽ cho xe dừng hẳn
  */
-#define TIME_OUT 500
+#define TIME_OUT 500 //! Đơn vị (ms)
 
 /* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
@@ -110,22 +114,22 @@ union MapLine
 
 /**
  * Cho biết hướng lệch hiện tại của xe
- * Phải mức 2 : +2
- * Phải mức 1 : +1
- * Giữa       :  0
- * Trái mức 1 : -1
- * Trái mức 2 : -2
+ * Lệch Phải mức 2 : +2
+ * Lệch Phải mức 1 : +1
+ * Ngay giữa line  :  0
+ * Lệch Trái mức 1 : -1
+ * Lệch Trái mức 2 : -2
  */
 int8_t direction;
 
 /**
- * Cho biết đang trong line hay ngoài line
+ * Cho biết xe đang trong line hay ngoài line
  * Trong line : TRUE
  * Ngoài line : FALSE
  */
 bool inLine;
 
-// Lưu thời điểm phát hiện xe ngoài line
+// Lưu thời điểm phát hiện xe vừa ra ngoài line
 unsigned long capPoint;
 
 /* ------------------------------------------------------------------------- */
@@ -181,14 +185,18 @@ void motorLeft_Stop()
 /* ------------------------- Điều khiển xe dừng lại ------------------------ */
 void stop()
 {
+  // Bánh phải dừng lại
   motorRight_Stop();
+  // Bánh trái dừng lại
   motorLeft_Stop();
 }
 
 /* ------------------------- Điều khiển xe đi thẳng ------------------------ */
 void go_straight_custom(byte speedLeft, byte speedRight)
 {
+  // Bánh phải đi tới
   motorRight_RotateForward(speedRight);
+  // Bánh trái đi tới
   motorLeft_RotateForward(speedLeft);
 }
 
@@ -197,7 +205,6 @@ void turn_left(byte speed)
 {
   // Bánh phải đi tới
   motorRight_RotateForward(speed);
-
   // Bánh trái đi lùi
   motorLeft_RotateReverse(speed);
 }
@@ -207,7 +214,6 @@ void turn_right(byte speed)
 {
   // Bánh phải đi lùi
   motorRight_RotateReverse(speed);
-
   // Bánh trái đi tới
   motorLeft_RotateForward(speed);
 }
@@ -231,34 +237,29 @@ void motor_control()
   raw.dataLine.line2 = digitalRead(PIN_OUT2);
   raw.dataLine.line3 = digitalRead(PIN_OUT3);
 
-  // Điều khiển xe đi
-  // Serial.println(raw.stateLine);
+  // Điều khiển xe
   switch (raw.stateLine)
   {
     /* --------------------- Hết line, hoặc ngoài line --------------------- */
 
   case 0: // 000
-    /**
-     * Bắt đầu đếm thời gian
-     * Kể từ lúc xe vừa lệch ra ngoài line
-     */
+    /* ------------------ Bắt đầu đếm thời gian "timeout" ------------------ */
+    /* ---------------- Kể từ lúc xe vừa lệch ra ngoài line ---------------- */
     if (inLine)
     {
       capPoint = millis();
       inLine = false;
     }
-    /**
-     * Nếu quá thời gian giới hạn
-     * Sẽ cho xe dừng lại
-     */
+    /* --------------------- Nếu quá thời gian giới hạn -------------------- */
+    /* ------------------------- Sẽ cho xe dừng lại ------------------------ */
     if (millis() - capPoint >= TIME_OUT)
     {
+      direction = 0;
+      inLine = false;
       stop();
     }
-    /**
-     * Nếu vẫn còn trong thời gian cho phép
-     * Điều khiển xe cố gắng tìm lại line
-     */
+    /* ---------------- Nếu vẫn còn trong thời gian cho phép --------------- */
+    /* ----------------- Điều khiển xe cố gắng tìm lại line ---------------- */
     else
     {
       switch (direction)
@@ -284,7 +285,7 @@ void motor_control()
 
     /* ----------------------------- Lệch trái ----------------------------- */
 
-    /* Lệch trái nhiều ... xoay phải */
+    /* Lệch trái nhiều ... rẽ phải ... bánh trái quay nhanh hơn nữa */
   case 1: // 001
     direction = -2;
     inLine = true;
@@ -323,7 +324,7 @@ void motor_control()
     go_straight_custom(SLOW, NORMAL);
     break;
 
-    /* Lệch phải nhiều ... xoay trái */
+    /* Lệch phải nhiều ... rẽ trái ... bánh phải quay nhanh hơn nữa */
   case 4: // 100
     direction = 2;
     inLine = true;
@@ -348,11 +349,13 @@ void motor_control()
 
 void setup()
 {
+  // Thiết đặt các chân điều khiển Driver
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
   pinMode(PIN_IN4, OUTPUT);
 
+  // Tránh xe chạy liền ngay khi vừa khởi động
   delay(TIME_OUT);
 }
 
@@ -362,5 +365,12 @@ void setup()
 
 void loop()
 {
+  /**
+   * Trình tự các bước điều khiển xe:
+   * |
+   * Bước 1: đọc giá trị các mắt dò line (3 cảm biến)
+   * Bước 2: tổ hợp giá trị phản hồi của các cảm biến sẽ tạo ra các trường hợp khác nhau
+   * Bước 3: điều khiển các bánh xe dựa theo từng trường hợp
+   */
   motor_control();
 }

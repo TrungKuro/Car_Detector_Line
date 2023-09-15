@@ -110,7 +110,7 @@
  * Đặt giá trị tốc độ xe mặc định ban đầu
  * Khi xe vừa mới khởi động, khoảng [0 : 255]
  */
-#define SPEED_DEFAULT PER_100
+#define SPEED_DEFAULT PER_100 //!
 
 /**
  * Tính năng nâng cao:
@@ -121,7 +121,7 @@
  * Comment để chọn chế độ cơ bản
  * Uncomment để chọn chế độ nâng cao
  */
-#define UPGRADE
+#define UPGRADE //!
 
 /**
  * Thông số này được sử dụng trong chế độ nâng cao
@@ -129,7 +129,7 @@
  * Thiết đặt tốc độ thay đổi công suất của bánh xe
  * Khi xe thực hiện việc rẽ trái hoặc rẽ phải
  */
-#define TIME_CHANGES 6 // Đơn vị (ms)
+#define TIME_CHANGES 6 //! Đơn vị (ms)
 
 /* ------------------------------------------------------------------------- */
 /*                                  LIBRARY                                  */
