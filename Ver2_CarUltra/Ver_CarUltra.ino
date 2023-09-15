@@ -3,22 +3,6 @@
 /* ------------------------------------------------------------------------- */
 
 /**
- * Pin kết nối Thanh dò line TCRT5000
- *
- * TCRT5000 : Arduino
- * GND      - GND
- * 5V       - 5V
- * OUT1     - A1 (Digital)
- * OUT2     - A2 (Digital)
- * OUT3     - A3 (Digital)
- */
-#define PIN_OUT1 A1 //! A1
-#define PIN_OUT2 A2 //! A2
-#define PIN_OUT3 A3 //! A3
-
-/* ------------------------------------------------------------------------- */
-
-/**
  * Pin kết nối động cơ RC Servo
  *
  * Servo : Arduino
@@ -68,29 +52,6 @@
 
 /* ------------------------------------------------------------------------- */
 
-/**
- * Pin kết nối Module Bluetooth (JDY-33)
- *
- * JDY33 : Arduino
- * STATE - ... none
- * RXD   - D3 (TX Software Serial)
- * TXD   - D2 (RX Software Serial)
- * GND   - GND
- * VCC   - 5V
- * PWRC  - ... none
- */
-#define PIN_RX_BLE 3 //! D3
-#define PIN_TX_BLE 2 //! D2
-
-/* ------------------------------------------------------------------------- */
-
-/**
- * Hệ số của các khâu PID
- */
-#define KP 25.0    //!
-#define KI 0.00001 //!
-#define KD 11.0    //!
-
 // Tốc độ motor, đơn vị PWM (0-255)
 #define PER_100 255
 #define PER_90 230
@@ -102,214 +63,106 @@
 #define PER_30 77
 #define PER_20 51
 #define PER_10 26
+#define PER_0 0
+
+// Các mức tốc độ xe sẽ sử dụng
+#define FAST PER_60
+#define NORMAL PER_50
+#define SLOW PER_40
 
 /**
- * Đặt giá trị tốc độ xe mặc định ban đầu
- * Khi xe vừa mới khởi động, khoảng [0 : 255]
+ * Đặt khoảng vùng đo cho cảm biến Siêu âm
+ * Khoảng xa nhất và khoảng ngắn nhất
+ * Đơn vị (cm)
  */
-#define SPEED_DEFAULT PER_30
+#define MAX_DISTANCE 100
+#define MIN_DISTANCE 10
 
 /**
- * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
+ * Khoảng cách nguy hiểm để xe dừng lại
+ * Đơn vị (cm)
  */
-#define MIN -PER_50
-#define MAX PER_50
+#define DANGER_DISTANCE 20
+
+/**
+ * Khoảng cách an toàn để xe đi tiếp
+ * Đơn vị (cm)
+ */
+#define SAFE_DISTANCE 50
+
+/**
+ * Khoảng dừng giữa mỗi lần xe chuyển trạng thái
+ * Từ di chuyển sang dừng, và ngược lại
+ * Và giữa các lần Servo di chuyển
+ * Đơn vị (ms)
+ */
+#define WAIT 300
+
+/**
+ * Góc quay của Servo
+ * Để chỉnh hướng quét của Siêu âm
+ */
+#define SIDE_LEFT 0
+#define SIDE_CENTER 90
+#define SIDE_RIGHT 180
+
+/* ------------------------------------------------------------------------- */
+/*                                  LIBRARY                                  */
+/* ------------------------------------------------------------------------- */
+
+#include <Servo.h>
+#include <NewPing.h>
 
 /* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
 /* ------------------------------------------------------------------------- */
 
-/**
- * Tổng kích thước dữ liệu này là 1 Byte
- *
- * Bit : [7] - [6] - [5] - [4] - [3] - [2] - [1] - [0]
- * Line:  x     x     x     x     x    OUT3  OUT2  OUT1
- */
-struct DataLine
-{
-  // Mép Phải
-  bool line1 : 1; // OUT1 - Bit [0]
-  bool line2 : 1; // OUT2 - Bit [1]
-  bool line3 : 1; // OUT3 - Bit [2]
-  // Mép Trái
-};
+// Khởi tạo cảm biến Siêu âm
+NewPing sonar(PIN_TRIG, PIN_ECHO, MAX_DISTANCE);
+
+// Khởi tạo động cơ Servo
+Servo servo_motor;
 
 /**
- * Tổng kích thước dữ liệu này là 1 Byte
- * Biến "dataLine" và "stateLine" cùng chia sẽ vị trí bộ nhớ
+ * Quyết định đi thẳng hoặc hướng khác
  */
-union MapLine
-{
-  DataLine dataLine;
-  byte stateLine;
-} raw;
+bool goesForward = false;
 
-/* ------------------------------------------------------------------------- */
-
-struct CarLine
-{
-  /**
-   * Cho biết hướng lệch hiện tại của xe
-   * Lệch phải → (+) : TRUE
-   * Lệch trái → (-) : FALSE
-   */
-  bool direction;
-
-  int8_t P = 0, I = 0, D = 0;      // Giá trị hiện tại của từng khâu PID
-  float Kp = KP, Ki = KI, Kd = KD; // Hệ số của các khâu PID
-  int8_t errorPrev;                // Lưu giá trị "error" trước đó
-
-  // Lưu tốc độ của riêng mỗi bánh xe
-  byte speedRightNow;
-  byte speedLeftNow;
-} car;
+/**
+ * Lưu giá trị khoảng cách
+ * Gồm: trái, giữa, phải
+ */
+int distanceLeft = 0;
+int distanceCenter = 0;
+int distanceRight = 0;
 
 /* ------------------------------------------------------------------------- */
 /*                                  FUNCTION                                 */
 /* ------------------------------------------------------------------------- */
 
-// Đọc thanh dò line TCRT5000
-int8_t read_TCRT5000()
-{
-  /**
-   * Trái ---------- Giữa ---------- Phải
-   * |                                  |
-   * | OUT1 | OUT2 | OUT3 | OUT4 | OUT5 |
-   *
-   * Khoảng cách phát hiện Line ĐEN (~1cm)
-   * Có Line - HIGH - Bit 1
-   * Ko Line - LOW  - Bit 0
-   */
-  raw.dataLine.line5 = digitalRead(PIN_OUT5);
-  raw.dataLine.line4 = digitalRead(PIN_OUT4);
-  raw.dataLine.line3 = digitalRead(PIN_OUT3);
-  raw.dataLine.line2 = digitalRead(PIN_OUT2);
-  raw.dataLine.line1 = digitalRead(PIN_OUT1);
-
-  /**
-   * Chuyển giá trị DEC từ "stateLine"
-   * Sang giá trị Level cho "levelLine"
-   */
-  int8_t levelLine;
-  switch (raw.stateLine)
-  {
-  case 0:
-    if (car.direction)
-      levelLine = 5; // Đang lệch phải ngoài line
-    else
-      levelLine = -5; // Đang lệch trái ngoài line
-    break;
-  case 16: // Lệch phải mức 4
-    levelLine = 4;
-    break;
-  case 24: // Lệch phải mức 3
-    levelLine = 3;
-    break;
-  case 8: // Lệch phải mức 2
-    levelLine = 2;
-    break;
-  case 12: // Lệch phải mức 1
-    levelLine = 1;
-    break;
-  case 4: // Giữa line
-    levelLine = 0;
-    break;
-  case 6: // Lệch trái mức 1
-    levelLine = -1;
-    break;
-  case 2: // Lệch trái mức 2
-    levelLine = -2;
-    break;
-  case 3: // Lệch trái mức 3
-    levelLine = -3;
-    break;
-  case 1: // Lệch trái mức 4
-    levelLine = -4;
-    break;
-  default:
-    break;
-  }
-
-  // Cập nhập hướng lệch của xe
-  if (levelLine >= 0)
-    car.direction = true;
-  else
-    car.direction = false;
-
-  // Cho biết mức độ lệch hiện tại của xe
-  return levelLine;
-}
-
-/* ------------------------------------------------------------------------- */
-
-// Tính toán PID
-float calculate_pid(int8_t errorNow)
-{
-  // Tính toán các giá trị PID
-  car.P = errorNow;
-  car.I = car.I + errorNow;
-  car.D = errorNow - car.errorPrev;
-
-  // Cập nhập giá trị "error" hiện tại
-  car.errorPrev = errorNow;
-
-  // Tính toán giá trị PID
-  return (car.Kp * car.P) + (car.Ki * car.I) + (car.Kd * car.D);
-}
-
-/* ------------------------------------------------------------------------- */
-
-void motor_control(float PID_value)
-{
-  // Thêm PID vào điều chỉnh tốc độ riêng cho mỗi bánh xe
-  byte speedMotorRight = SPEED_DEFAULT - PID_value;
-  byte speedMotorLeft = SPEED_DEFAULT + PID_value;
-
-  // Đảm bảo tốc độ Motor ko vượt quá giá trị xung PWM tối đa
-  constrain(speedMotorLeft, 0, 255);
-  constrain(speedMotorRight, 0, 255);
-
-  // Đẩy robot về phía trước với tốc độ tùy chỉnh hai bên
-  go_straight_custom(speedMotorLeft, speedMotorRight);
-}
-
-/* ------------------------------------------------------------------------- */
-/*                                CONTROL CAR                                */
-/* ------------------------------------------------------------------------- */
-
-/**
- * Yêu cầu trong lắp đặt:
- * |
- * Cổng [OUT1:OUT2] điều khiển Motor bên Phải
- * Cổng [OUT3:OUT4] điều khiển Motor bên Trái
- * |
- * Khi OUT1(-) và OUT2(+), "Motor Phải" quay bánh đẩy xe đi tới
- * Khi OUT3(+) và OUT4(-), "Motor Trái" quay bánh đẩy xe đi tới
- */
-
 // Điều khiển Motor bên Phải quay tới
-void motorRight_RotateForward(byte PWM)
+void motorRight_RotateForward(int PWM)
 {
   digitalWrite(PIN_IN1, LOW);
   analogWrite(PIN_IN2, PWM);
 }
 
 // Điều khiển Motor bên Trái quay tới
-void motorLeft_RotateForward(byte PWM)
+void motorLeft_RotateForward(int PWM)
 {
   analogWrite(PIN_IN3, PWM);
   digitalWrite(PIN_IN4, LOW);
 }
 
 // Điều khiển Motor bên Phải quay lùi
-void motorRight_RotateReverse(byte PWM)
+void motorRight_RotateReverse(int PWM)
 {
   digitalWrite(PIN_IN1, HIGH);
   analogWrite(PIN_IN2, 255 - PWM);
 }
 
 // Điều khiển Motor bên Trái quay lùi
-void motorLeft_RotateReverse(byte PWM)
+void motorLeft_RotateReverse(int PWM)
 {
   analogWrite(PIN_IN3, 255 - PWM);
   digitalWrite(PIN_IN4, HIGH);
@@ -329,6 +182,26 @@ void motorLeft_Stop()
   digitalWrite(PIN_IN4, LOW);
 }
 
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+
+/* ------------------- Điều khiển xe di chuyển tùy chỉnh ------------------- */
+void go_custom(int speedLeft, int speedRight)
+{
+  // Xử lý motor bên Phải
+  if (speedRight >= 0)
+    motorRight_RotateForward(speedRight);
+  else
+    motorRight_RotateReverse(-speedRight);
+
+  // Xử lý motor bên Trái
+  if (speedLeft >= 0)
+    motorLeft_RotateForward(speedLeft);
+  else
+    motorLeft_RotateReverse(-speedLeft);
+}
+
 /* ------------------------- Điều khiển xe dừng lại ------------------------ */
 void stop()
 {
@@ -336,57 +209,52 @@ void stop()
   motorLeft_Stop();
 }
 
-/* ------------------------- Điều khiển xe đi thẳng ------------------------ */
-void go_straight(byte speed)
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+/* ------------------------------------------------------------------------- */
+
+void motor_control()
 {
-  motorRight_RotateForward(speed);
-  motorLeft_RotateForward(speed);
-}
+  // Nếu phát hiện có vật cản phía trước
+  if (distanceCenter <= DANGER_DISTANCE)
+  {
+    // Dừng xe ngay và đi lùi về một chút
+    go_custom(-SLOW, -SLOW);
+    delay(WAIT);
+    stop();
+    delay(WAIT);
 
-void go_straight_custom(byte speedLeft, byte speedRight)
-{
-  motorRight_RotateForward(speedRight);
-  motorLeft_RotateForward(speedLeft);
-}
+    // Kiểm tra khoảng cách bên phải
+    servo_motor.write(SIDE_RIGHT);
+    delay(WAIT);
+    distanceRight = readPing();
+    delay(WAIT);
 
-/* -------------------- Điều khiển xe đi thẳng lệch trái ------------------- */
-void go_left(byte speed)
-{
-  // Bánh phải đi tới nhanh
-  motorRight_RotateForward(speed);
+    // Kiểm tra khoảng cách bên trái
+    servo_motor.write(SIDE_LEFT);
+    delay(WAIT);
+    distanceLeft = readPing();
+    delay(WAIT);
 
-  // Bánh trái đi tới chậm
-  motorLeft_RotateForward(speed * SPEED);
-}
+    if (distance >= distanceLeft)
+    {              // neu khoang cach toi da >= khoang cach ben trai
+      turnRight(); // re phai
+      moveStop();
+    }
+    else
+    {             // ko thi
+      turnLeft(); // re trai
+      moveStop();
+    }
+  }
+  else
+  {
+    // Không có vật cản, xe được phép chạy thẳng tới
+    go_custom(NORMAL, NORMAL);
+  }
 
-/* -------------------- Điều khiển xe đi thẳng lệch phải ------------------- */
-void go_right(byte speed)
-{
-  // Bánh phải đi tới chậm
-  motorRight_RotateForward(speed * SPEED);
-
-  // Bánh trái đi tới nhanh
-  motorLeft_RotateForward(speed);
-}
-
-/* ------------------------ Điều khiển xe quay trái ------------------------ */
-void turn_left(byte speed)
-{
-  // Bánh phải đi tới
-  motorRight_RotateForward(speed);
-
-  // Bánh trái đi lùi
-  motorLeft_RotateReverse(speed);
-}
-
-/* ------------------------ Điều khiển xe quay phải ------------------------ */
-void turn_right(byte speed)
-{
-  // Bánh phải đi lùi
-  motorRight_RotateReverse(speed);
-
-  // Bánh trái đi tới
-  motorLeft_RotateForward(speed);
+  // Đọc khoảng cách hiện tại của xe
+  distanceCenter = readPing();
 }
 
 /* ------------------------------------------------------------------------- */
@@ -395,12 +263,19 @@ void turn_right(byte speed)
 
 void setup()
 {
-  Serial.begin(115200);
+  // Thiết đặt chân cho Servo
+  servo_motor.attach(PIN_SERVO);
+  servo_motor.write(SIDE_CENTER);
+  delay(WAIT);
 
+  // Thiết đặt các chân cho Driver
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
   pinMode(PIN_IN4, OUTPUT);
+
+  // Đo khoảng cách hiện của xe
+  distanceCenter = readPing();
 }
 
 /* ------------------------------------------------------------------------- */
@@ -409,5 +284,5 @@ void setup()
 
 void loop()
 {
-  motor_control(calculate_pid(read_TCRT5000()));
+  motor_control();
 }

@@ -1,55 +1,52 @@
-/*
- * Lựa chọn "Data Stream Frequency"
- * → On change/touch
+/**
+ * Sử dụng App "Bluetooth RC Car" của (Andi.Co)
+ * Nhớ lựa chọn "Data Stream Frequency" → On change/touch
  *
- *- Các tập lệnh AT cho JDY-33 ---------------------------|
- *                                                        |
- *    AT            kiểm tra kết nối                      |
- *    AT+NAME...    thay đổi tên                          |--> name: CarBLE
- *    AT+BAUD...    với 1 set to 1200 bps                 |
- *                      2 set to 2400   bps               |
- *                      3 set to 4800   bps               |
- *                      4 set to 9600   bps (mặc định)    |--> baud rate: 9600 bps
- *                      5 set to 19200  bps               |
- *                      6 set to 38400  bps               |
- *                      7 set to 57600  bps               |
- *                      8 set to 115200 bps               |
- *    AT+PIN...   cài đặt mã PIN (mặc định: 1234)         |--> pass: 1234
- *                                                        |
- *--------------------------------------------------------|
+ * Các tín hiệu điều khiển xe: ================================================
+ * |
+ * S       Ko làm gì (stop)  | . Xe đứng yên
+ * F       Tiến              | . (Chiều dọc) - Đi tới
+ * B       Lùi               | . (Chiều dọc) - Đi lùi
+ * L       Trái              | . Xoay ngược chiều kim đồng hồ
+ * R       Phải              | . Xoay chiều kim đồng hồ
+ * |
+ * G       Tiến + Trái       | . Rẽ hướng Tây-Bắc
+ * I       Tiến + Phải       | . Rẽ hướng Đông-Bắc
+ * H       Lùi  + Trái       | . Rẽ hướng Tây-Nam
+ * J       Lùi  + Phải       | . Rẽ hướng Đông-Nam
+ * |
+ * Trong chế độ nâng cao!
+ * Nhấn giữa tổ hợp phím này càng lâu, xe càng rẽ hướng đó nhiều
  *
- *- Các tín hiệu điều khiển xe ----------------------------------|
- *                                                               |
- *    S       Ko làm gì (stop)  | . Xe đứng yên                  |
- *    F       Tiến              | . (Chiều dọc) - Đi tới         |
- *    B       Lùi               | . (Chiều dọc) - Đi lùi         |
- *    L       Trái              | . Xoay ngược chiều kim đồng hồ |
- *    R       Phải              | . Xoay chiều kim đồng hồ       |
- *                                                               |
- *    G       Tiến + Trái       | . Rẽ hướng Tây-Bắc             |
- *    I       Tiến + Phải       | . Rẽ hướng Đông-Bắc            |
- *    H       Lùi  + Trái       | . Rẽ hướng Tây-Nam             |
- *    J       Lùi  + Phải       | . Rẽ hướng Đông-Nam            |
- *                                                               |
- * Nhấn giữa tổ hợp phím này càng lâu, xe càng rẽ hướng đó nhiều |
- *---------------------------------------------------------------|
+ * Các tín hiệu điều khiển tốc độ xe: =========================================
+ * |
+ * 0     Tốc độ MIN (0%)
+ * 1     10%
+ * 2     20%
+ * 3     30%
+ * 4     40%
+ * 5     50%
+ * 6     60%
+ * 7     70%
+ * 8     80%
+ * 9     90%
+ * q     Tốc độ MAX (100%)
+ * |
+ * D     Tắt hết tất cả (stop everything)
  *
- *- Các tín hiệu điều khiển tốc độ xe |
- *------------------------------------|
- *    0     Tốc độ MIN      |
- *    1     ...             |
- *    2     ...             |
- *    3     ...             |
- *    4     ...             |
- *    5     ...             |
- *    6     ...             |
- *    7     ...             |
- *    8     ...             |
- *    9     ...             |
- *    q     Tốc độ MAX      |
- *  ------------------------|-----------------|
- *    D     Tắt hết tất cả (stop everything)  |
- *--------------------------------------------|
+ * Các tập lệnh AT cho JDY-33: ================================================
+ * |
+ * AT            kiểm tra kết nối
+ * AT+NAME...    thay đổi tên                          |--> name: CarBLE
+ * AT+BAUD...    với 1 set to 1200 bps                 |
+ * |                 2 set to 2400   bps               |
+ * |                 3 set to 4800   bps               |
+ * |                 4 set to 9600   bps (mặc định)    |--> baud rate: 9600 bps
+ * |                 5 set to 19200  bps               |
+ * |                 6 set to 38400  bps               |
+ * |                 7 set to 57600  bps               |
+ * |                 8 set to 115200 bps               |
+ * AT+PIN...   cài đặt mã PIN (mặc định: 1234)         |--> pass: 1234
  */
 
 /* ------------------------------------------------------------------------- */
@@ -83,11 +80,11 @@
  * ENA  - 5V
  * ENB  - 5V
  *
- * L298 : Arduino : Chức năng
- * IN1  : D4      :
- * IN2  : D5 (~)  :
- * IN3  : D6 (~)  :
- * IN4  : D7      :
+ * L298 : Arduino
+ * IN1  : D4
+ * IN2  : D5 (~)
+ * IN3  : D6 (~)
+ * IN4  : D7
  */
 #define PIN_IN1 4 //! D4
 #define PIN_IN2 5 //! D5 (~)
@@ -121,12 +118,15 @@
  * _ Gồm đi tới rẽ trái/phải ; đi lùi rẽ trái/phải
  * _ Càng giữ nút nhấn lâu, tốc độ rẽ của xe càng nhanh
  *
- * Comment hoặc Uncomment để chọn chế đ
+ * Comment để chọn chế độ cơ bản
+ * Uncomment để chọn chế độ nâng cao
  */
 #define UPGRADE
 
 /**
- * Tốc độ thay đổi công suất của bánh xe
+ * Thông số này được sử dụng trong chế độ nâng cao
+ * |
+ * Thiết đặt tốc độ thay đổi công suất của bánh xe
  * Khi xe thực hiện việc rẽ trái hoặc rẽ phải
  */
 #define TIME_CHANGES 6 // Đơn vị (ms)
@@ -138,16 +138,24 @@
 #include <SoftwareSerial.h>
 
 /* ------------------------------------------------------------------------- */
+/*                                   OBJECT                                  */
+/* ------------------------------------------------------------------------- */
+
+SoftwareSerial mySerial(PIN_TX_BLE, PIN_RX_BLE); // RX (Soft), TX (Soft)
+
+/* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
 /* ------------------------------------------------------------------------- */
 
-byte blue = 0;                                   // Nhận dữ liệu qua Bluetooth
-SoftwareSerial mySerial(PIN_TX_BLE, PIN_RX_BLE); // RX (Soft), TX (Soft)
-int speed = SPEED_DEFAULT;                       // Tốc độ hiện tại của xe
+byte blue = 0;             // Nhận dữ liệu qua Bluetooth
+int speed = SPEED_DEFAULT; // Tốc độ hiện tại của xe
 
+/**
+ * Các biến này được sử dụng trong chế độ nâng cao
+ */
 #ifdef UPGRADE
 bool flag = false;     // Cờ báo cho biết đang nhấn tổ hợp phím
-unsigned long capTime; // Lấy thời điểm bắt đầu tổ hợp phím
+unsigned long capTime; // Lấy thời điểm bắt đầu nhấn tổ hợp phím
 int speedChange;       // Lưu tốc độ thay đổi hiện tại của bánh xe
 enum DIRECTION         // Cho biết loại tổ hợp phím đang nhấn
 {
@@ -209,6 +217,11 @@ void motorLeft_Stop()
 /* ------------------------------------------------------------------------- */
 
 /* ------------------- Điều khiển xe di chuyển tùy chỉnh ------------------- */
+
+/**
+ * Giá trị tốc độ dương (+), bánh xe quay hướng đi tới
+ * Giá trị tốc độ âm (-), bánh xe quay hướng đi lùi
+ */
 void go_custom(int speedLeft, int speedRight)
 {
   // Xử lý motor bên Phải
@@ -364,6 +377,7 @@ void setup()
   // Bật kênh truyền Bluetooth
   mySerial.begin(9600);
 
+  // Thiết đặt các chân điều khiển Driver
   pinMode(PIN_IN1, OUTPUT);
   pinMode(PIN_IN2, OUTPUT);
   pinMode(PIN_IN3, OUTPUT);
@@ -376,7 +390,7 @@ void setup()
 
 void loop()
 {
-  // Nếu có dữ liệu gửi về thì đọc
+  // Nếu có dữ liệu BLE gửi về thì đọc
   if (mySerial.available() > 0)
   {
     // Đọc dữ liệu
