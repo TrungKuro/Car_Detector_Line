@@ -1,9 +1,5 @@
-/**
- * ??????????
- */
-
 /* ------------------------------------------------------------------------- */
-/*                                   DEFINE                                  */
+/*                                 DEFINE PIN                                */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -56,67 +52,95 @@
 #define PIN_IN4 7 //! D7
 
 /* ------------------------------------------------------------------------- */
+/*                           DEFINE CONFIG (DRIVER)                          */
+/* ------------------------------------------------------------------------- */
 
 // Tốc độ motor, đơn vị PWM (0-255)
 #define PER_100 255
+#define PER_95 243
 #define PER_90 230
+#define PER_85 218
 #define PER_80 205
+#define PER_75 192
 #define PER_70 179
+#define PER_65 166
 #define PER_60 154
+#define PER_55 141
 #define PER_50 128
+#define PER_45 115
 #define PER_40 102
+#define PER_35 90
 #define PER_30 77
+#define PER_25 64
 #define PER_20 51
+#define PER_15 38
 #define PER_10 26
+#define PER_5 13
 #define PER_0 0
 
-// Các mức tốc độ xe sẽ sử dụng
-#define FAST PER_60   //!
-#define NORMAL PER_50 //!
-#define SLOW PER_40   //!
+/**
+ * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
+ */
+#define MAX PER_50 //!
+#define MIN PER_35 //!
+
+/* ------------------------------------------------------------------------- */
+/*                           DEFINE CONFIG (ULTRA)                           */
+/* ------------------------------------------------------------------------- */
 
 /**
  * Đặt khoảng vùng đo cho cảm biến Siêu âm
  * Khoảng xa nhất và khoảng ngắn nhất
  * Đơn vị (cm)
  */
-#define MAX_DISTANCE 100 //!
-#define MIN_DISTANCE 10  //!
+#define MAX_DISTANCE 30 //!
+#define MIN_DISTANCE 3  //!
 
 /**
  * Đặt khoảng cách hoạt động cho cảm biến Siêu âm
- * Khoảng cách "nguy hiểm" để xe dừng lại và "an toàn" để xe đi tiếp
+ * Khoảng cách "nguy hiểm" để xe dừng lại
+ * Và khoảng "vượt quá" để xe đi dò tìm
  * Đơn vị (cm)
  */
-#define DANGER_DISTANCE 20 //!
-#define SAFE_DISTANCE 50   //!
-
-/**
- * Khoảng dừng giữa mỗi lần xe chuyển trạng thái
- * Từ di chuyển sang dừng, và ngược lại
- * Đơn vị (ms)
- */
-#define WAIT_DRIVER 500 //!
-
-/**
- * Khoảng thời gian chờ giữa mỗi lần Servo di chuyển
- * Đơn vị (ms)
- */
-#define WAIT_SERVO 700 //!
+#define DANGER_DISTANCE 5 //!
+#define OVER_DISTANCE 25  //!
 
 /**
  * Khoảng thời gian chờ giữa mỗi lần đo cảm biến Siêu âm
  * Đơn vị (ms)
+ *
+ * Wait 50ms between pings (about 20 pings/sec)
+ * 29ms should be the shortest delay between pings
  */
-#define WAIT_ULTRA 100 //!
+#define WAIT_ULTRA 35 //!
+
+/* ------------------------------------------------------------------------- */
+/*                           DEFINE CONFIG (SERVO)                           */
+/* ------------------------------------------------------------------------- */
+
+/**
+ * Khoảng thời gian chờ giữa mỗi lần Servo di chuyển góc lớn
+ * Và khoảng thời gian chờ giữa mỗi lần Servo di chuyển bước nhỏ
+ * Đơn vị (ms)
+ */
+#define WAIT_SERVO 1500   //!
+#define WAIT_SERVO_STEP 7 //!
+
+/**
+ * Độ lớn góc cho mỗi bước di chuyển của Servo
+ * Đơn vị độ (º)
+ */
+#define ANGLE_STEP 1 //!
 
 /**
  * Góc quay của Servo, để chỉnh hướng quét của Siêu âm
- * Đơn vị độ (º)
+ * Đơn vị độ (º) từ 0º đến 180º
  */
-#define SCAN_LEFT 170  //!
-#define SCAN_CENTER 90 //!
-#define SCAN_RIGHT 10  //!
+#define SCAN_LEFT_END 165   //! (+70)
+#define SCAN_LEFT_BEGIN 105 //! (+10)
+#define SCAN_CENTER 95      //!
+#define SCAN_RIGHT_BEGIN 85 //! (-10)
+#define SCAN_RIGHT_END 25   //! (-70)
 
 /* ------------------------------------------------------------------------- */
 /*                                  LIBRARY                                  */
@@ -140,19 +164,28 @@ Servo servo_motor;
 /* ------------------------------------------------------------------------- */
 
 /**
- * Quyết định đi thẳng hoặc hướng khác
- * TRUE  : được đi thẳng
- * FALSE : ko được đi thẳng
+ * Lưu giá trị khoảng cách, đơn vị (cm)
  */
-bool goesForward = false;
+int distance = 0;
 
 /**
- * Lưu giá trị khoảng cách, đơn vị (cm)
- * Gồm hướng trái, giữa, phải
+ * Cập nhập thời điểm đọc giá trị cảm biến Siêu âm
+ * Đơn vị (ms)
  */
-int distanceLeft = 0;
-int distanceCenter = 0;
-int distanceRight = 0;
+unsigned long timeUpdate;
+
+/**
+ * Lưu góc quay hiện tại của Servo, đơn vị (º)
+ */
+int angle;
+
+/**
+ * Tính toán tốc độ riêng cho mỗi bánh xe
+ * Bánh xe bên trái và bánh xe bên phải
+ * Đơn vị (PWM)
+ */
+int wheelLeft;
+int wheelRight;
 
 /* ------------------------------------------------------------------------- */
 /*                                  FUNCTION                                 */
@@ -161,43 +194,43 @@ int distanceRight = 0;
 // Điều khiển Motor bên Phải quay tới
 void motorRight_RotateForward(int PWM)
 {
-  digitalWrite(PIN_IN1, LOW);
-  analogWrite(PIN_IN2, PWM);
+  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_IN3, PWM);
 }
 
 // Điều khiển Motor bên Trái quay tới
 void motorLeft_RotateForward(int PWM)
 {
-  analogWrite(PIN_IN3, PWM);
-  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_IN2, PWM);
+  digitalWrite(PIN_IN1, LOW);
 }
 
 // Điều khiển Motor bên Phải quay lùi
 void motorRight_RotateReverse(int PWM)
 {
-  digitalWrite(PIN_IN1, HIGH);
-  analogWrite(PIN_IN2, 255 - PWM);
+  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_IN3, 255 - PWM);
 }
 
 // Điều khiển Motor bên Trái quay lùi
 void motorLeft_RotateReverse(int PWM)
 {
-  analogWrite(PIN_IN3, 255 - PWM);
-  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_IN2, 255 - PWM);
+  digitalWrite(PIN_IN1, HIGH);
 }
 
 // Điều khiển Motor bên Phải dừng lại
 void motorRight_Stop()
 {
-  digitalWrite(PIN_IN1, LOW);
-  digitalWrite(PIN_IN2, LOW);
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, LOW);
 }
 
 // Điều khiển Motor bên Trái dừng lại
 void motorLeft_Stop()
 {
-  digitalWrite(PIN_IN3, LOW);
-  digitalWrite(PIN_IN4, LOW);
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, LOW);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -238,7 +271,15 @@ void stop()
 
 int readPing()
 {
-  return constrain(sonar.ping_cm(), MIN_DISTANCE, MAX_DISTANCE);
+  int cm = sonar.ping_cm();
+  if (cm == 0)
+  {
+    return MAX_DISTANCE;
+  }
+  else
+  {
+    return constrain(cm, MIN_DISTANCE, MAX_DISTANCE);
+  }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -247,65 +288,75 @@ int readPing()
 
 void motor_control()
 {
-  // Nếu phát hiện có vật cản phía trước
-  if (distanceCenter <= DANGER_DISTANCE)
+  /* ------------------- Step 1: Đọc giá trị khoảng cách ------------------- */
+  if (millis() - timeUpdate >= WAIT_ULTRA)
   {
-    // Lùi gấp liền và dừng lại
-    go_custom(-FAST, -FAST);
-    delay(WAIT_DRIVER);
+    timeUpdate = millis();
+    distance = readPing();
+  }
+
+  if (distance <= DANGER_DISTANCE)
+  {
+    // Dừng lại, gần chạm rồi
     stop();
-    delay(WAIT_DRIVER);
-
-    // Kiểm tra khoảng cách bên phải
-    servo_motor.write(SCAN_RIGHT);
-    delay(WAIT_SERVO);
-    distanceRight = readPing();
-    delay(WAIT_ULTRA);
-    servo_motor.write(SCAN_CENTER);
-    delay(WAIT_SERVO);
-
-    // Kiểm tra khoảng cách bên trái
-    servo_motor.write(SCAN_LEFT);
-    delay(WAIT_SERVO);
-    distanceLeft = readPing();
-    delay(WAIT_ULTRA);
-    servo_motor.write(SCAN_CENTER);
-    delay(WAIT_SERVO);
-
-    do
-    {
-      /* -------------- Bên phải có khoảng trống để di chuyển -------------- */
-      if (distanceRight >= distanceLeft)
-      {
-        // Xoay phải
-        go_custom(SLOW, -SLOW);
-        delay(WAIT_DRIVER);
-        stop();
-        delay(WAIT_DRIVER);
-      }
-      /* -------------- Bên trái có khoảng trống để di chuyển -------------- */
-      else
-      {
-        // Xoay trái
-        go_custom(-SLOW, SLOW);
-        delay(WAIT_DRIVER);
-        stop();
-        delay(WAIT_DRIVER);
-      }
-      /* -------- Kiểm tra khoảng cách xem có phải xoay tiếp hay ko? ------- */
-      distanceCenter = readPing();
-      delay(WAIT_ULTRA);
-    } while (distanceCenter < SAFE_DISTANCE);
   }
   else
   {
-    // Không có vật cản, xe được phép chạy thẳng tới
-    go_custom(NORMAL, NORMAL);
-  }
+    /* -------------------- Step 2: Điều khiển góc quét -------------------- */
+    if (distance >= OVER_DISTANCE)
+    {
+      /**
+       * Ko tìm thấy đối tượng, phải đi dò tìm
+       * Cho máy quét hướng về bên trái, đồng thời di chuyển xe về bên trái
+       */
+      angle += ANGLE_STEP;
+      if (angle >= SCAN_LEFT_END)
+        angle = SCAN_LEFT_END;
+    }
+    else
+    {
+      /**
+       * Phát hiện thấy đối tượng, phải bám theo
+       * Cho máy quét hướng về bên phải, đồng thời di chuyển xe về bên phải
+       */
+      angle -= ANGLE_STEP;
+      if (angle <= SCAN_RIGHT_END)
+        angle = SCAN_RIGHT_END;
+    }
+    servo_motor.write(angle);
+    delay(WAIT_SERVO_STEP);
 
-  // Đọc khoảng cách hiện tại của xe
-  distanceCenter = readPing();
-  delay(WAIT_ULTRA);
+    /* ------------- Step 3: Di chuyển xe theo giá trị góc quay ------------ */
+    if (angle >= SCAN_LEFT_BEGIN)
+    {
+      // Cho xe rẽ dần sang trái
+      wheelRight = MAX;
+      //
+      wheelLeft = map(angle, SCAN_LEFT_BEGIN, SCAN_LEFT_END, MAX, -MAX);
+      if (wheelLeft >= 0)
+        wheelLeft = constrain(wheelLeft, MIN, MAX);
+      else
+        wheelLeft = constrain(wheelLeft, -MAX, -MIN);
+    }
+    else if (angle <= SCAN_RIGHT_BEGIN)
+    {
+      // Cho xe rẽ dần sang phải
+      wheelLeft = MAX;
+      //
+      wheelRight = map(angle, SCAN_RIGHT_BEGIN, SCAN_RIGHT_END, MAX, -MAX);
+      if (wheelRight >= 0)
+        wheelRight = constrain(wheelRight, MIN, MAX);
+      else
+        wheelRight = constrain(wheelRight, -MAX, -MIN);
+    }
+    else
+    {
+      // Cho xe đi thẳng
+      wheelLeft = MIN;
+      wheelRight = MIN;
+    }
+    go_custom(wheelLeft, wheelRight);
+  }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -325,12 +376,9 @@ void setup()
 
   /**
    * Điều khiển Servo quay Siêu âm ngay hướng giữa
-   * Và đo khoảng cách phía trước xe
    */
   servo_motor.write(SCAN_CENTER);
   delay(WAIT_SERVO);
-  distanceCenter = readPing();
-  delay(WAIT_ULTRA);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -343,7 +391,8 @@ void loop()
    * Trình tự các bước điều khiển xe:
    * |
    * Bước 1: Kiểm tra khoảng cách hiện tại
-   * Bước 2: Điều khiển xe di chuyển phù hợp theo giá trị nhận được
+   * Bước 2: Điều khiển góc quay để quét
+   * Bước 3: Điều khiển xe đi theo hướng quét
    */
   motor_control();
 }

@@ -1,6 +1,6 @@
 /**
  * Phiên bản này, xe chạy liên tục ko có dừng
- * - Sử dụng 3 mắt dò line
+ * - Sử dụng 5 mắt dò line
  * - Dùng thuật toán PID
  *
  * Lưu ý, có 2 cách sử dụng giá trị PID
@@ -20,10 +20,14 @@
  * OUT1     - A1 (Digital)
  * OUT2     - A2 (Digital)
  * OUT3     - A3 (Digital)
+ * OUT4     - A4 (Digital)
+ * OUT5     - A5 (Digital)
  */
 #define PIN_OUT1 A1 //! A1
 #define PIN_OUT2 A2 //! A2
 #define PIN_OUT3 A3 //! A3
+#define PIN_OUT4 A4 //! A4
+#define PIN_OUT5 A5 //! A5
 
 /* ------------------------------------------------------------------------- */
 
@@ -78,15 +82,25 @@
 
 // Tốc độ motor, đơn vị PWM (0-255)
 #define PER_100 255
+#define PER_95 243
 #define PER_90 230
+#define PER_85 218
 #define PER_80 205
+#define PER_75 192
 #define PER_70 179
+#define PER_65 166
 #define PER_60 154
+#define PER_55 141
 #define PER_50 128
+#define PER_45 115
 #define PER_40 102
+#define PER_35 90
 #define PER_30 77
+#define PER_25 64
 #define PER_20 51
+#define PER_15 38
 #define PER_10 26
+#define PER_5 13
 #define PER_0 0
 
 /**
@@ -136,7 +150,7 @@
  * Tổng kích thước dữ liệu này là 1 Byte
  *
  * Bit : [7] - [6] - [5] - [4] - [3] - [2] - [1] - [0]
- * Line:  x     x     x     x     x    OUT3  OUT2  OUT1
+ * Line:  x     x     x    OUT5  OUT4  OUT3  OUT2  OUT1
  */
 struct DataLine
 {
@@ -144,6 +158,8 @@ struct DataLine
   bool line1 : 1; // OUT1 - Bit [0]
   bool line2 : 1; // OUT2 - Bit [1]
   bool line3 : 1; // OUT3 - Bit [2]
+  bool line4 : 1; // OUT4 - Bit [3]
+  bool line5 : 1; // OUT5 - Bit [4]
   // Mép Trái
 };
 
@@ -264,9 +280,9 @@ void go_custom(int speedLeft, int speedRight)
 void motor_control()
 {
   /**
-   * Trái ------------ Phải
-   * |                    |
-   * | OUT3 | OUT2 | OUT1 |
+   * Trái -------------------------- Phải
+   * |                                  |
+   * | OUT5 | OUT4 | OUT3 | OUT2 | OUT1 |
    *
    * Khoảng cách phát hiện Line ĐEN (~1cm)
    * Có Line - HIGH - Bit 1
@@ -275,7 +291,11 @@ void motor_control()
   raw.dataLine.line1 = digitalRead(PIN_OUT1);
   raw.dataLine.line2 = digitalRead(PIN_OUT2);
   raw.dataLine.line3 = digitalRead(PIN_OUT3);
+  raw.dataLine.line4 = digitalRead(PIN_OUT4);
+  raw.dataLine.line5 = digitalRead(PIN_OUT5);
 
+  /* ----------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------- */
   /* ----------------------------------------------------------------------- */
 
   /**
@@ -287,39 +307,75 @@ void motor_control()
     /* ------------------ [000] - Hết line hoặc ngoài line ----------------- */
   case 0:
     if (car.direction)
-      car.errorNow = 3; // Đang lệch phải ngoài line
+      car.errorNow = 10; // Đang lệch phải ngoài line
     else
-      car.errorNow = -3; // Đang lệch trái ngoài line
+      car.errorNow = -10; // Đang lệch trái ngoài line
+    break;
+    /* -------------------------- Góc 45º bên phải ------------------------- */
+  case 5: // [00101]
+    car.direction = false;
+    car.errorNow = -100;
+    break;
+    /* -------------------------- Góc 90º bên phải ------------------------- */
+  case 7: // [00111]
+    car.direction = false;
+    car.errorNow = -50;
     break;
     /* ----------------------------- Lệch trái ----------------------------- */
-  case 1: // [001] - Lệch trái mức 2
+  case 1: // [00001] - Lệch trái mức 4
+    car.direction = false;
+    car.errorNow = -4;
+    break;
+  case 3: // [00011] - Lệch trái mức 3
+    car.direction = false;
+    car.errorNow = -3;
+    break;
+  case 2: // [00010] - Lệch trái mức 2
     car.direction = false;
     car.errorNow = -2;
     break;
-  case 3: // [011] - Lệch trái mức 1
+  case 6: // [00110] - Lệch trái mức 1
     car.direction = false;
     car.errorNow = -1;
     break;
     /* ----------------------------- Giữa line ----------------------------- */
-  case 2: // [010] - Giữa line
+  case 4: // [00100] - Giữa line
     car.errorNow = 0;
     break;
     /* ----------------------------- Lệch phải ----------------------------- */
-  case 6: // [110] - Lệch phải mức 1
+  case 12: // [01100] - Lệch phải mức 1
     car.direction = true;
     car.errorNow = 1;
     break;
-  case 4: // [100] - Lệch phải mức 2
+  case 8: // [01000] - Lệch phải mức 2
     car.direction = true;
     car.errorNow = 2;
     break;
+  case 24: // [11000] - Lệch phải mức 3
+    car.direction = true;
+    car.errorNow = 3;
+    break;
+  case 16: // [10000] - Lệch phải mức 4
+    car.direction = true;
+    car.errorNow = 4;
+    break;
+    /* -------------------------- Góc 90º bên trái ------------------------- */
+  case 28: // [11100]
+    car.direction = true;
+    car.errorNow = 50;
+    break;
+    /* -------------------------- Góc 45º bên trái ------------------------- */
+  case 20: // [10100]
+    car.direction = true;
+    car.errorNow = 100;
+    break;
     /* ------------------------ Các trường hợp khác ------------------------ */
-  // case 7: // [111]
-  // case 5: // [101]
   default:
     break;
   }
 
+  /* ----------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------- */
   /* ----------------------------------------------------------------------- */
 
   // Tính toán các giá trị PID
@@ -333,7 +389,7 @@ void motor_control()
   // Tính toán giá trị PID
   car.PID_value = (car.Kp * car.P) + (car.Ki * car.I) + (car.Kd * car.D);
 
-/* ----------------------------------------------------------------------- */
+  /* ----------------------------------------------------------------------- */
 
 // Thêm PID vào điều chỉnh tốc độ riêng cho mỗi bánh xe
 #ifdef ZERO
@@ -343,6 +399,8 @@ void motor_control()
   car.speedRightNow = SPEED_DEFAULT + car.PID_value;
   car.speedLeftNow = SPEED_DEFAULT - car.PID_value;
 #endif
+
+  /* ----------------------------------------------------------------------- */
 
   // Đảm bảo tốc độ Motor bánh phải nằm trong các khoảng quy định
   if (car.speedRightNow >= 0)
@@ -354,6 +412,8 @@ void motor_control()
     car.speedLeftNow = constrain(car.speedLeftNow, MIN_UP, UP);
   else
     car.speedLeftNow = constrain(car.speedLeftNow, DOWN, MIN_DOWN);
+
+  /* ----------------------------------------------------------------------- */
 
   // Đẩy robot về phía trước với tốc độ tùy chỉnh hai bên
   go_custom(car.speedLeftNow, car.speedRightNow);
@@ -381,7 +441,7 @@ void loop()
   /**
    * Trình tự các bước điều khiển xe:
    * |
-   * Bước 1: đọc giá trị các mắt dò line (3 cảm biến)
+   * Bước 1: đọc giá trị các mắt dò line (5 cảm biến)
    * Bước 2: tính ra "mức độ lệch line" hiện tại từ giá trị các cảm biến phản hồi về
    * Bước 3: tính giá trị từng khâu P, khâu I, khâu D
    * Bước 4: tính giá trị tổng của cả khâu PID

@@ -50,7 +50,7 @@
  */
 
 /* ------------------------------------------------------------------------- */
-/*                                   DEFINE                                  */
+/*                                 DEFINE PIN                                */
 /* ------------------------------------------------------------------------- */
 
 /**
@@ -92,6 +92,8 @@
 #define PIN_IN4 7 //! D7
 
 /* ------------------------------------------------------------------------- */
+/*                           DEFINE CONFIG (DRIVER)                          */
+/* ------------------------------------------------------------------------- */
 
 // Tốc độ motor, đơn vị PWM (0-255)
 #define PER_100 255
@@ -113,6 +115,21 @@
 #define SPEED_DEFAULT PER_100 //!
 
 /**
+ * Thông số này được sử dụng trong chế độ nâng cao
+ * |
+ * Thiết đặt tốc độ thay đổi công suất của bánh xe
+ * Khi xe thực hiện việc rẽ trái hoặc rẽ phải
+ *
+ * Chỉ số càng nhỏ, tốc độ rẽ càng nhanh
+ * Giá trị mặc định ban đầu là 6 (ms)
+ */
+#define TIME_CHANGES 2 //! Đơn vị (ms)
+
+/* ------------------------------------------------------------------------- */
+/*                            DEFINE CONFIG (MODE)                           */
+/* ------------------------------------------------------------------------- */
+
+/**
  * Tính năng nâng cao:
  * _ Khi nhấn các tổ hợp nút cho xe rẽ trái hoặc phải
  * _ Gồm đi tới rẽ trái/phải ; đi lùi rẽ trái/phải
@@ -122,14 +139,6 @@
  * Uncomment để chọn chế độ nâng cao
  */
 #define UPGRADE //!
-
-/**
- * Thông số này được sử dụng trong chế độ nâng cao
- * |
- * Thiết đặt tốc độ thay đổi công suất của bánh xe
- * Khi xe thực hiện việc rẽ trái hoặc rẽ phải
- */
-#define TIME_CHANGES 6 //! Đơn vị (ms)
 
 /* ------------------------------------------------------------------------- */
 /*                                  LIBRARY                                  */
@@ -173,43 +182,43 @@ enum DIRECTION         // Cho biết loại tổ hợp phím đang nhấn
 // Điều khiển Motor bên Phải quay tới
 void motorRight_RotateForward(int PWM)
 {
-  digitalWrite(PIN_IN1, LOW);
-  analogWrite(PIN_IN2, PWM);
+  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_IN3, PWM);
 }
 
 // Điều khiển Motor bên Trái quay tới
 void motorLeft_RotateForward(int PWM)
 {
-  analogWrite(PIN_IN3, PWM);
-  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_IN2, PWM);
+  digitalWrite(PIN_IN1, LOW);
 }
 
 // Điều khiển Motor bên Phải quay lùi
 void motorRight_RotateReverse(int PWM)
 {
-  digitalWrite(PIN_IN1, HIGH);
-  analogWrite(PIN_IN2, 255 - PWM);
+  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_IN3, 255 - PWM);
 }
 
 // Điều khiển Motor bên Trái quay lùi
 void motorLeft_RotateReverse(int PWM)
 {
-  analogWrite(PIN_IN3, 255 - PWM);
-  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_IN2, 255 - PWM);
+  digitalWrite(PIN_IN1, HIGH);
 }
 
 // Điều khiển Motor bên Phải dừng lại
 void motorRight_Stop()
 {
-  digitalWrite(PIN_IN1, LOW);
-  digitalWrite(PIN_IN2, LOW);
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, LOW);
 }
 
 // Điều khiển Motor bên Trái dừng lại
 void motorLeft_Stop()
 {
-  digitalWrite(PIN_IN3, LOW);
-  digitalWrite(PIN_IN4, LOW);
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, LOW);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -268,14 +277,14 @@ void motor_control()
     break;
   /* ---------------- Xe xoay trái (ngược chiều kim đồng hồ) --------------- */
   case 'L':
-    go_custom(speed, -speed);
+    go_custom(-speed, speed);
 #ifdef UPGRADE
     flag = false;
 #endif
     break;
   /* ---------------- Xe xoay phải (cùng chiều kim đồng hồ) ---------------- */
   case 'R':
-    go_custom(-speed, speed);
+    go_custom(speed, -speed);
 #ifdef UPGRADE
     flag = false;
 #endif
