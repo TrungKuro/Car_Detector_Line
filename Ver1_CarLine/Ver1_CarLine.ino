@@ -67,10 +67,20 @@
  * Khâu [I] để cộng dồn các mức lệch
  * |        giúp bù lực cho tình huống bị đứng yên ở trên
  * |        nhưng hệ số nên nhỏ thôi, vì tần suất tính khâu PID tương đối nhanh
+ *
+ * #define SPEED_DEFAULT PER_30 //!
+ * #define UP PER_70    //!
+ * #define DOWN -PER_70 //!
+ * #define MIN_UP PER_30    //!
+ * #define MIN_DOWN -PER_30 //!
+ * #define KP 75.0  //!
+ * #define KI 0.005 //!
+ * #define KD 70.0  //!
+ * → Hiệu ứng bám line rất tốt, tuy nhiên xe lắc nhiều, đi rất chậm
  */
-#define KP 50.0    //!
-#define KI 0.00001 //!
-#define KD 35.0    //!
+#define KP 75.0  //!
+#define KI 0.005 //!
+#define KD 72.5  //!
 
 /* ------------------------------------------------------------------------- */
 /*                           DEFINE CONFIG (DRIVER)                          */
@@ -93,15 +103,15 @@
  * Đặt giá trị tốc độ xe mặc định ban đầu
  * Khi xe vừa mới khởi động, khoảng [0 : 255]
  */
-#define SPEED_DEFAULT PER_50 //!
+#define SPEED_DEFAULT PER_40 //!
 
 /**
  * Đặt ngưỡng giới hạn trên và dưới cho tốc độ
  * Giá trị dương (+), motor quay thuận
  * Giá trị âm (-), motor quay nghịch
  */
-#define UP PER_70    //!
-#define DOWN -PER_70 //!
+#define UP PER_90    //!
+#define DOWN -PER_90 //!
 
 /**
  * Đặt ngưỡng thấp nhất cho phép cấp vào motor
@@ -111,8 +121,8 @@
  * - quay thuận ... [MIN_UP : UP]
  * - quay nghịch ... [MIN_DOWN : DOWN]
  */
-#define MIN_UP PER_30    //!
-#define MIN_DOWN -PER_30 //!
+#define MIN_UP PER_40    //!
+#define MIN_DOWN -PER_40 //!
 
 /* ------------------------------------------------------------------------- */
 /*                            DEFINE CONFIG (MODE)                           */
@@ -126,7 +136,7 @@
  * Comment để chọn chế độ DEFAULT
  * Uncomment để chọn chế độ ZERO
  */
-#define ZERO //!
+// #define ZERO //!
 
 /* ------------------------------------------------------------------------- */
 /*                                  VARIABLE                                 */
@@ -184,43 +194,43 @@ struct CarLine
 // Điều khiển Motor bên Phải quay tới
 void motorRight_RotateForward(int PWM)
 {
-  digitalWrite(PIN_IN1, LOW);
-  analogWrite(PIN_IN2, PWM);
+  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_IN3, PWM);
 }
 
 // Điều khiển Motor bên Trái quay tới
 void motorLeft_RotateForward(int PWM)
 {
-  analogWrite(PIN_IN3, PWM);
-  digitalWrite(PIN_IN4, LOW);
+  analogWrite(PIN_IN2, PWM);
+  digitalWrite(PIN_IN1, LOW);
 }
 
 // Điều khiển Motor bên Phải quay lùi
 void motorRight_RotateReverse(int PWM)
 {
-  digitalWrite(PIN_IN1, HIGH);
-  analogWrite(PIN_IN2, 255 - PWM);
+  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_IN3, 255 - PWM);
 }
 
 // Điều khiển Motor bên Trái quay lùi
 void motorLeft_RotateReverse(int PWM)
 {
-  analogWrite(PIN_IN3, 255 - PWM);
-  digitalWrite(PIN_IN4, HIGH);
+  analogWrite(PIN_IN2, 255 - PWM);
+  digitalWrite(PIN_IN1, HIGH);
 }
 
 // Điều khiển Motor bên Phải dừng lại
 void motorRight_Stop()
 {
-  digitalWrite(PIN_IN1, LOW);
-  digitalWrite(PIN_IN2, LOW);
+  digitalWrite(PIN_IN3, LOW);
+  digitalWrite(PIN_IN4, LOW);
 }
 
 // Điều khiển Motor bên Trái dừng lại
 void motorLeft_Stop()
 {
-  digitalWrite(PIN_IN3, LOW);
-  digitalWrite(PIN_IN4, LOW);
+  digitalWrite(PIN_IN1, LOW);
+  digitalWrite(PIN_IN2, LOW);
 }
 
 /* ------------------------------------------------------------------------- */
